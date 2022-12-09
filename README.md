@@ -1,3 +1,5 @@
+[![Python package](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/python-package.yml/badge.svg)](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/python-package.yml)
+
 # pyenv + poetry + tox + pytest 環境構築例
 
 最小限の事例を記す.
@@ -8,16 +10,16 @@
 
 - 任意の python 環境は [pyenv](https://github.com/pyenv/pyenv) で構築
 
-  Windows の場合は [pyenv-win](https://github.com/pyenv-win/pyenv-win) で代替  
+  Windows の場合は [pyenv-win](https://github.com/pyenv-win/pyenv-win) で代替
 
 - [poetry](https://github.com/python-poetry/poetry) で仮想環境を構築
 
 - 本例では python 3.7 / 3.8 を想定
 
-  3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとしたアプリを開発している状況など.  
-  
+  3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとしたアプリを開発している状況など.
+
   **※ 3.7 未満は依存関係がカオスなので全力回避**
-  
+
 - テストは [tox](https://github.com/tox-dev/tox) + [pytest](https://github.com/pytest-dev/pytest)
 
 ```mermaid
@@ -38,7 +40,7 @@ flowchart TD
         id41(py37)
         id42(py38)
       end
-    end 
+    end
   end
 
   id12 .-> id11
@@ -66,7 +68,7 @@ flowchart TD
 
 Chocolatey 以外は環境変数の設定が必要になるので[詳細](https://github.com/pyenv-win/pyenv-win/blob/master/docs/installation.md)を参考に.
 
-### python 
+### python
 
 #### インストール
 
@@ -99,11 +101,11 @@ $ pyenv versions
 >
 > Poetry requires **Python 3.7+**. It is multi-platform and the goal is to make it work equally well on Linux, macOS and Windows.
 
-予め**システム**に python 3.7 以上をインストール要.  
+予め**システム**に python 3.7 以上をインストール要.
 
-**poetry を動作させるために必要であって, プロジェクトへの制約ではない.**  
+**poetry を動作させるために必要であって, プロジェクトへの制約ではない.**
 
-[Installation](https://python-poetry.org/docs/#installation) を参考にお好みで.  
+[Installation](https://python-poetry.org/docs/#installation) を参考にお好みで.
 
 #### 設定
 
@@ -171,7 +173,7 @@ Python 3.8.10
 
 #### 特記事項
 
-動作確認を行った環境では, 
+動作確認を行った環境では,
 
 - `$ pyenv local 3.8.10 3.7.9` なら `python -V` で`3.8.10`
 - `$ pyenv local 3.7.9 3.8.10` なら `python -V` で `3.7.9`
@@ -203,9 +205,9 @@ pyenv_poetry_tox_pytest_example
 python = "^3.7"
 ```
 
-意味は 3.7 <= python version < 4.0 と若干緩め.  
+意味は 3.7 <= python version < 4.0 と若干緩め.
 
-依存するモジュールによっては制限を厳しくする必要もある.  
+依存するモジュールによっては制限を厳しくする必要もある.
 
 ### 4. 仮想環境を構築
 
@@ -271,15 +273,15 @@ pytest = "^7.2.0"
 tox = "^3.27.1"
 ```
 
-[2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認.  
+[2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認.
 
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認
 
-  Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.  
+  Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.
 
-  本例では 3.7 が認識されずスキップされる.  
+  本例では 3.7 が認識されずスキップされる.
 
-- 
+-
 
 インストール
 
@@ -317,9 +319,9 @@ commands =
     poetry run pytest -v
 ```
 
- `py37` / `py38` は `pyenv local` で指定されたバージョンを参照する `tox` 側のキーワード.  
+ `py37` / `py38` は `pyenv local` で指定されたバージョンを参照する `tox` 側のキーワード.
 
-もしも 3.11.x が必要なら `py311` となる.  
+もしも 3.11.x が必要なら `py311` となる.
 
 
 
@@ -438,4 +440,3 @@ __pycache__/
 - [Poetry documentation (ver. 1.1.6 日本語訳)](https://cocoatomo.github.io/poetry-ja/)
 - [tox](https://github.com/tox-dev/tox)
 - [pytest](https://github.com/pytest-dev/pytest)
-
