@@ -7,21 +7,13 @@
 ## 前提
 
 - OS は Linux または Windows を想定
-
 - 任意の python 環境は [pyenv](https://github.com/pyenv/pyenv) で構築
-
   Windows の場合は [pyenv-win](https://github.com/pyenv-win/pyenv-win) で代替
-
 - [poetry](https://github.com/python-poetry/poetry) で仮想環境を構築
-
   グループ機能が便利なのでバージョンは 1.2 以上.
-
 - 本例では python 3.7 / 3.8 を想定
-
   3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとしたアプリを開発している状況など.
-
   **※ 3.7 未満は依存関係がカオスなので全力回避**
-
 - テストは [tox](https://github.com/tox-dev/tox) + [pytest](https://github.com/pytest-dev/pytest)
 
 ```mermaid
@@ -140,22 +132,24 @@ $ poetry config virtualenvs.in-project true --local
 任意の場所で
 
 ```bash
-$ poetry new pyenv_poetry_tox_pytest_example
+$ poetry new --src pyenv_poetry_tox_pytest_example
 ```
 
 ディレクトリ
 
 ```bash
 pyenv_poetry_tox_pytest_example
-│   pyproject.toml
-│   README.md
-│
-├─pyenv_poetry_tox_pytest_example
-│     __init__.py
-│
+├─ pyproject.toml
+├─ README.md
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      └─ __init__.py
 └─tests
-      __init__.py
+   └─ __init__.py
 ```
+
+- [Choosing a test layout / import rules](https://docs.pytest.org/en/latest/explanation/goodpractices.html#tests-outside-application-code)
+- [Packaging a python library](https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure)
 
 ###  2. 使用する python を指定
 
@@ -188,15 +182,14 @@ Python 3.8.10
 
 ```bash
 pyenv_poetry_tox_pytest_example
-│   .python-version (New!)
-│   pyproject.toml
-│   README.md
-│
-├───pyenv_poetry_tox_pytest_example
-│    __init__.py
-│
-└───tests
-    __init__.py
+├─ .python-version (New!)
+├─ pyproject.toml
+├─ README.md
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      └─ __init__.py
+└─tests
+   └─ __init__.py
 ```
 
 ### 3. `pyproject.toml` でバージョンを指定
@@ -230,17 +223,16 @@ $ poetry env info
 
 ```bash
 pyenv_poetry_tox_pytest_example
-│    .python-version
-│    pyproject.toml
-│    README.md
-│
-├───.venv (New!)
-│
-├───pyenv_poetry_tox_pytest_example
-│    __init__.py
-│
-└───tests
-    __init__.py
+├─ .python-version
+├─ pyproject.toml
+├─ README.md
+├─ .venv (New!)
+│  └─ ...
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      └─ __init__.py
+└─tests
+   └─ __init__.py
 ```
 
 ###  5. コードを配置
@@ -249,21 +241,20 @@ pyenv_poetry_tox_pytest_example
 
 ディレクトリ
 
-```
+```bash
 pyenv_poetry_tox_pytest_example
-│    .python-version
-│    pyproject.toml
-│    README.md
-│
-├───.venv
-│
-├───pyenv_poetry_tox_pytest_example
-│    utils.py (New!)
-│    __init__.py
-│
-└───tests
-    test_utils.py (New!)
-    __init__.py
+├─ .python-version
+├─ pyproject.toml
+├─ README.md
+├─ .venv
+│  └─ ...
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      ├─ __init__.py
+│      └─ utils.py (New!)
+└─tests
+   ├─ __init__.py
+   └─ test_utils.py (New!)
 ```
 
 ### 6. テスト環境の準備
@@ -282,14 +273,17 @@ optional = true
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.0"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = "src"
 ```
 
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認
-
   Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.
-
   本例では 3.7 が認識されずスキップされる.
-
 -
 
 インストール
@@ -330,27 +324,26 @@ commands =
 ```
 
 - `py37` / `py38` は `pyenv local` で指定されたバージョンを参照する `tox` 側のキーワード.
-
   もしも 3.11.x が必要なら `py311` となる.
 
 ディレクトリ
 
 ```bash
 pyenv_poetry_tox_pytest_example
-│    .python-version
-│    pyproject.toml
-│    README.md
-│    tox.ini (New!)
-│
-├───.venv
-│
-├───pyenv_poetry_tox_pytest_example
-│    utils.py
-│    __init__.py
-│
-└───tests
-    test_utils.py
-    __init__.py
+├─ .python-version
+├─ poetry.lock
+├─ pyproject.toml
+├─ README.md
+├─ tox.ini (New!)
+├─ .venv
+│  └─ ...
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      ├─ __init__.py
+│      └─ utils.py
+└─tests
+   ├─ __init__.py
+   └─ test_utils.py
 ```
 
 ### 8. テストを実行
@@ -365,22 +358,26 @@ $ poetry run tox
 
 ```bash
 pyenv_poetry_tox_pytest_example
-│    .python-version
-│    pyproject.toml
-│    README.md
-│    tox.ini
-│
-├───.tox (New!)
-│
-├───.venv
-│
-├───pyenv_poetry_tox_pytest_example
-│    utils.py
-│    __init__.py
-│
-└───tests
-    test_utils.py
-    __init__.py
+├─ .python-version
+├─ poetry.lock
+├─ pyproject.toml
+├─ README.md
+├─ tox.ini
+├─ .tox (New!)
+│  └─ ...
+├─ .venv
+│  └─ ...
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      ├─ __pycache__
+│      │  └─ ...
+│      ├─ __init__.py
+│      └─ utils.py
+└─tests
+   ├─ __pycache__
+   │  └─ ...
+   ├─ __init__.py
+   └─ test_utils.py
 ```
 
 ## .gitignore の設定
@@ -389,40 +386,44 @@ pyenv_poetry_tox_pytest_example
 
 ```bash
 pyenv_poetry_tox_pytest_example
-│    .python-version
-│    pyproject.toml
-│    README.md
-│    tox.ini
-│
-├───.tox
-│
-├───.venv
-│
-├───pyenv_poetry_tox_pytest_example
-│    utils.py
-│    __init__.py
-│
-└───tests
-    test_utils.py
-    __init__.py
+├─ .python-version
+├─ poetry.lock
+├─ pyproject.toml
+├─ README.md
+├─ tox.ini
+├─ .tox
+│  └─ ...
+├─ .venv
+│  └─ ...
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      ├─ __pycache__
+│      │  └─ ...
+│      ├─ __init__.py
+│      └─ utils.py
+└─tests
+   ├─ __pycache__
+   │  └─ ...
+   ├─ __init__.py
+   └─ test_utils.py
 ```
 
 不要な構造を削ぎ落すと
 
 ```
 pyenv_poetry_tox_pytest_example
-│    .python-version
-│    pyproject.toml
-│    README.md
-│    tox.ini
-│
-├───pyenv_poetry_tox_pytest_example
-│    utils.py
-│    __init__.py
-│
-└───tests
-    test_utils.py
-    __init__.py
+├─ .python-version
+├─ poetry.lock
+├─ pyproject.toml
+├─ README.md
+├─ tox.ini
+├─ src
+│  └─ pyenv_poetry_tox_pytest_example
+│      ├─ __init__.py
+│      └─ utils.py
+└─tests
+   ├─ __init__.py
+   └─ test_utils.py
 ```
 
 その他, 自動生成されるものも考慮すると最小限の `.gitignore` は
@@ -436,15 +437,13 @@ pyenv_poetry_tox_pytest_example
 __pycache__/
 ```
 
-`.python-version` は環境次第でマイナーバージョンに大きな差があるため.
-
-`poetry.lock` はお好みで.
+- `.python-version` は環境次第でマイナーバージョンに大きな差があるため.
+- `poetry.lock` はお好みで.
 
 ## 参考
 
 - [Simple Python Version Management: pyenv](https://github.com/pyenv/pyenv)
 - [pyenv for Windows](https://github.com/pyenv-win/pyenv-win)
 - [Poetry](https://python-poetry.org)
-- [Poetry documentation (ver. 1.1.6 日本語訳)](https://cocoatomo.github.io/poetry-ja/)
 - [tox](https://github.com/tox-dev/tox)
 - [pytest](https://github.com/pytest-dev/pytest)

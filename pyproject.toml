@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["'Hasenpfote' <'Hasenpfote36@gmail.com'>"]
 readme = "README.md"
-packages = [{include = "pyenv_poetry_tox_pytest_example"}]
+packages = [{include = "pyenv_poetry_tox_pytest_example", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -24,3 +24,9 @@ pytest = "^7.2.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = "src"
