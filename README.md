@@ -14,6 +14,8 @@
 
 - [poetry](https://github.com/python-poetry/poetry) で仮想環境を構築
 
+  グループ機能が便利なのでバージョンは 1.2 以上.
+
 - 本例では python 3.7 / 3.8 を想定
 
   3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとしたアプリを開発している状況など.
@@ -26,12 +28,12 @@
 flowchart TD
 
   subgraph system
-    id11(python)
-    id12(poetry)
+    id11(python >= 3.7)
+    id12(poetry >= 1.2)
 
     subgraph pyenv
-      id21(python=3.7)
-      id22(python=3.8)
+      id21(python = 3.7)
+      id22(python = 3.8)
     end
 
     subgraph project
@@ -202,6 +204,7 @@ pyenv_poetry_tox_pytest_example
 以下のように指定をしておく.
 
 ```toml
+[tool.poetry.dependencies]
 python = "^3.7"
 ```
 
@@ -268,12 +271,18 @@ pyenv_poetry_tox_pytest_example
 `poetry add` でも構わないが, 本例では諸事情から `pyproject.toml` に直接記述をする.
 
 ```toml
-[tool.poetry.dev-dependencies]
-pytest = "^7.2.0"
-tox = "^3.27.1"
-```
+[tool.poetry.group.dev]
+optional = true
 
-[2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認.
+[tool.poetry.group.dev.dependencies]
+tox = "^3.27.1"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2.0"
+```
 
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認
 
@@ -286,7 +295,7 @@ tox = "^3.27.1"
 インストール
 
 ```bash
-$ poetry install
+$ poetry install --with dev
 ```
 
 インストールでエラーがでるようならロックファイルの更新で対応
@@ -314,16 +323,15 @@ isolated_build = true
 [testenv]
 allowlist_externals =
     poetry
+commands_pre =
+    poetry install --with test -v
 commands =
-    poetry install -v
     poetry run pytest -v
 ```
 
- `py37` / `py38` は `pyenv local` で指定されたバージョンを参照する `tox` 側のキーワード.
+- `py37` / `py38` は `pyenv local` で指定されたバージョンを参照する `tox` 側のキーワード.
 
-もしも 3.11.x が必要なら `py311` となる.
-
-
+  もしも 3.11.x が必要なら `py311` となる.
 
 ディレクトリ
 
