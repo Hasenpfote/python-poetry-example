@@ -468,6 +468,297 @@ __pycache__/
 - `.python-version` は環境次第でマイナーバージョンに大きな差があるため.
 - `poetry.lock` はお好みで.
 
+## 拡張
+
+基本で目的は果たしているものの, 心許ないので一手間を加える.
+
+### solution
+
+- [black](https://github.com/psf/black)
+
+  コードの整形に利用.
+
+- [isort](https://github.com/PyCQA/isort)
+
+  `import` の並び替えに利用.
+
+- [flake8p](https://github.com/john-hen/Flake8-pyproject)
+
+  構文チェックに利用.
+
+  `poetry` 経由で利用するので[オリジナル](https://github.com/PyCQA/flake8)は使えない.
+
+  [2022/12/11] [pflake8](https://github.com/csachs/pyproject-flake8) は `max-line-length` が反映されなかったので選択肢を変更した.
+
+  79 / 88 / 120 宗派のため.
+
+- [mypy](https://github.com/python/mypy)
+
+  型ヒントに利用.
+
+  取り敢えず組み込んでおき, いつでも optional から変更できるように配慮.
+
+```mermaid
+flowchart LR
+
+  subgraph solution
+    subgraph formatter
+      black
+      isort
+      black .- isort
+    end
+    subgraph linter
+      flake8
+      mypy
+    end
+  end
+```
+
+### 環境
+
+`vscode` 環境とそれ以外を考慮しつつ, 最終的にリポジトリへのコミットで同一性を担保する方向で.
+
+- `solution` の設定は `pyproject.toml` で一元管理
+- `vscode` は `poetry` で作成した仮想環境を利用するように設定
+- `tox` に確認用の環境を仕込んでおく
+- [pre-commit](https://github.com/pre-commit/pre-commit) でコミットをフックする
+
+```mermaid
+flowchart LR
+
+  subgraph tox
+    id_tox(solution)
+  end
+
+  subgraph poetry
+    id_poetry(solution)
+  end
+
+  subgraph vscode
+    id_vscode(solution)
+  end
+
+  subgraph pre-commit
+    id_pre-commit(solution)
+  end
+
+  tox .-o poetry
+
+  id_terminal(terminal)
+  id_py(*.py)
+  id_repo[(repo)]
+  id_git(git)
+
+  id_terminal .-> id_git
+  vscode .-> id_git
+
+  id_terminal --> |poetry run tox solution| id_tox --> |dry-run| id_py
+  id_terminal ---> |poetry run solution| id_poetry --> |run| id_py
+  id_vscode --> id_py
+
+  id_py .-o id_repo
+  id_pre-commit --> id_py
+  id_git .-> |git commit| pre-commit .-> id_repo
+```
+
+### 各種ファイル
+
+#### `pyproject.toml`
+
+```toml
+[tool.poetry]
+name = "pyenv_poetry_tox_pytest_example"
+version = "0.1.0"
+description = ""
+authors = ["name <email>"]
+readme = "README.md"
+packages = [{include = "pyenv_poetry_tox_pytest_example", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.10.0"
+isort = "^5.10.1"
+Flake8-pyproject = "^1.2.2"
+mypy = "^0.991"
+pre-commit = "^2.20.0"
+tox = "^3.27.1"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "E266", "W503",]
+max-complexity = 10
+exclude = [".git", "__pycache__",".venv", ".tox",]
+
+[tool.mypy]
+ignore_errors = true
+#disallow_untyped_defs = true
+#ignore_missing_imports = true
+#no_implicit_optional = true
+#show_error_context = true
+#show_column_numbers = true
+#warn_return_any = true
+#warn_unused_ignores = true
+#warn_redundant_casts = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = "src"
+```
+
+`vscode` 環境以外は下記で実行
+
+```bash
+$ poetry run black .
+$ poetry run isort .
+$ poetry run flake8 .
+$ poetry run mypy .
+```
+
+**`mypy` を `ignore_errors = true` で実質的に無効にしているので注意.**
+
+#### `tox.ini`
+
+```ini
+[tox]
+envlist =
+    py37
+    py38
+    black
+    isort
+    flake8
+    mypy
+skipsdist = true
+isolated_build = true
+
+[testenv]
+allowlist_externals =
+    poetry
+commands_pre =
+    poetry install --with test -v
+commands =
+    poetry run pytest -v
+
+[testenv:black]
+deps = black
+commands_pre = # nop
+commands =
+    poetry run black . --check --diff --color
+
+[testenv:isort]
+deps =
+    isort
+    colorama
+commands_pre = # nop
+commands =
+    poetry run isort . --check --diff --color
+
+[testenv:flake8]
+deps = Flake8-pyproject
+commands_pre = # nop
+commands =
+    poetry run flake8p .
+
+[testenv:mypy]
+deps = mypy
+commands_pre = # nop
+commands =
+    poetry run mypy .
+```
+
+`vscode` 環境以外は下記で確認を実行
+
+```bash
+$ poetry run tox black
+$ poetry run tox isort
+$ poetry run tox flake8
+$ poetry run tox mypy
+```
+
+#### `.pre-commit-config.yaml`
+
+```yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+  - repo: https://github.com/psf/black
+    rev: 22.12.0
+    hooks:
+      - id: black
+        language_version: python3
+  - repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+  - repo: https://github.com/john-hen/Flake8-pyproject
+    rev: 1.2.2
+    hooks:
+      - id: Flake8-pyproject
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.991
+    hooks:
+      - id: mypy
+```
+
+設定を変更する都度, 下記を実行
+
+```bash
+$ poetry run pre-commit install
+```
+
+### 考察
+
+導入していない機能や言い訳.
+
+#### 動的バージョニング
+
+vcs を基点に動的なバージョン管理を行うには, [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning) が候補.
+
+`poetry build` 時に自動かつ一時的に `pyproject.toml` や任意のファイルのバージョンを変更をしてくれる.
+
+#### ドキュメント
+
+`pyproject.toml` で一元管理をするなら [sphinx-pyproject](https://github.com/sphinx-toolbox/sphinx-pyproject) が候補.
+
+ただし, `pyproject.toml` が冗長になることと, 動的バージョニングの共通化を図れない.
+
+`conf.py` で `pyproject.toml` を都合よく解釈し設定する方向が無難か?
+
 ## 参考
 
 - [Simple Python Version Management: pyenv](https://github.com/pyenv/pyenv)
@@ -475,3 +766,8 @@ __pycache__/
 - [Poetry](https://python-poetry.org)
 - [tox](https://github.com/tox-dev/tox)
 - [pytest](https://github.com/pytest-dev/pytest)
+- [black](https://github.com/psf/black)
+- [isort](https://github.com/PyCQA/isort)
+- [flake8p](https://github.com/john-hen/Flake8-pyproject)
+- [mypy](https://github.com/python/mypy)
+- [pre-commit](https://github.com/pre-commit/pre-commit)

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-sys.path.append('../')
-from pyenv_poetry_tox_pytest_example import utils
-
 # https://stackoverflow.com/a/50740647
 from unittest.mock import patch
+
+from pyenv_poetry_tox_pytest_example import utils
 
 
 def test_add():
