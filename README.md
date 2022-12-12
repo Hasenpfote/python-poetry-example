@@ -16,7 +16,7 @@
 - 仮想環境は [poetry](https://github.com/python-poetry/poetry) で構築  
   グループ機能が便利なのでバージョンは 1.2 以上.
 - 本例では python 3.7 / 3.8 を想定  
-  3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとした開発を行っている状況など.
+  3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとした開発を行っている状況など.  
   **※ 3.7 未満は依存関係がカオスなので全力回避**
 - テストは [tox](https://github.com/tox-dev/tox) + [pytest](https://github.com/pytest-dev/pytest)
 - 面倒なことはしない
