@@ -13,7 +13,7 @@
 - OS は Linux または Windows を想定
 - 任意の python 環境は [pyenv](https://github.com/pyenv/pyenv) で構築  
   Windows の場合は [pyenv-win](https://github.com/pyenv-win/pyenv-win) で代替
-- 仮想環境は [poetry](https://github.com/python-poetry/poetry) で構築
+- 仮想環境は [poetry](https://github.com/python-poetry/poetry) で構築  
   グループ機能が便利なのでバージョンは 1.2 以上.
 - 本例では python 3.7 / 3.8 を想定  
   3.8 は現行バージョンで, 3.7 は後方互換の最小バージョンとした開発を行っている状況など.
