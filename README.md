@@ -2,11 +2,27 @@
 
 # pyenv + poetry + tox + pytest 環境構築例
 
-最小限の事例を記す.
+## 要約
 
-特に注釈がなければ
+python で pyenv + poetry + tox + pytest に
 
-- 各種情報の背景は 2022年12月あたり
+- linter/formatter
+
+  black + isort + flake8 + mypy
+
+- API の文書化
+
+  pdoc
+
+- 動的バージョニング
+
+  poetry-dynamic-versioning
+
+- CI/CD
+
+  gh-actions
+
+特に注釈がなければ, 各種情報の背景は 2022年12月あたり.  
 
 ## 前提条件
 
@@ -300,7 +316,7 @@ pythonpath = "src"
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認  
   Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.  
   本例では 3.7 が認識されずスキップされる.
--
+  -
 
 インストール
 
@@ -475,7 +491,7 @@ __pycache__/
 
 好みもあるので以降は optional となる.  
 
-### 拡張 1 - linter / formatter
+### 拡張 1 - linter/formatter
 
 #### 構成
 
@@ -1001,7 +1017,318 @@ from .__version__ import __version__
       )
   ```
 
--
+### 拡張 4 - CI/CD
+
+ここでは [GitHub Actions](https://docs.github.com/en/actions) を利用した例となる.  
+
+デプロイ先は
+
+- パッケージは [TestPyPI](https://test.pypi.org)  
+- API ドキュメントは [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
+
+```mermaid
+flowchart LR
+
+  event_1(on: push)
+  event_2(on: pull_request)
+  event_3(on: release)
+  event_4(on: workflow_dispatch)
+
+  subgraph test.yml
+  direction LR
+    id_t1[black\ndry-run]
+    id_t2[isort\ndry-run]
+    lint-pr
+    lint-local
+    mypy
+    test
+    id_t1 --> id_t2
+    id_t2 --> lint-local --> mypy
+    id_t2 --> lint-pr --> mypy
+    mypy --> test
+  end
+
+  subgraph testpypi.yml
+    testpypi_1[build]
+    --> testpypi_2[deploy]
+  end
+
+  subgraph docs.yml
+    docs_1[build]
+    --> docs_2[deploy]
+  end
+
+  event_1 ==> test.yml
+  event_2 ==> test.yml
+  event_3 ==> testpypi.yml
+  testpypi_2 .-> o1[(TestPyPI)]
+  testpypi.yml ====> |on: workflow_call| docs.yml
+  event_4 ==> docs.yml
+  docs_2 .-> o2[(gh-pages)]
+```
+
+#### 準備
+
+`./github/python-version.txt`
+
+```python
+3.8
+```
+
+各ファイルで用いる, 開発上の現行バージョンを指定.  
+
+`./github/workflows/test.yml`
+
+```python
+name: Test
+
+on: [ push, pull_request ]
+
+permissions:
+  contents: read
+
+jobs:
+  black:
+    if: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: .github/python-version.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'poetry>=1.2'
+          poetry install --with dev --no-interaction
+      - name: Lint with black
+        run: |
+          poetry run tox -e black
+
+  isort:
+    if: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: .github/python-version.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'poetry>=1.2'
+          poetry install --with dev --no-interaction
+      - name: Lint with isort
+        run: |
+          poetry run tox -e isort
+
+  lint-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: TrueBrain/actions-flake8@v2
+
+  lint-local:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: .github/python-version.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'poetry>=1.2'
+          poetry install --with dev --no-interaction
+      - name: Lint with flake8
+        run: |
+          poetry run tox -e flake8
+
+  mypy:
+    if: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: .github/python-version.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'poetry>=1.2'
+          poetry install --with dev --no-interaction
+      - name: Lint with mypy
+        run: |
+          poetry run tox -e mypy
+
+  test:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.7', '3.8']
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install 'poetry>=1.2'
+        poetry install --with dev --no-interaction
+    - name: Test with pytest
+      run: |
+        poetry run tox -e py
+```
+
+`test` は対象範囲が変わる都度, 設定を変更する必要がある.  
+
+`./github/workflows/testpypi.yml`
+
+```python
+name: Publish the package to TestPyPI
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version-file: .github/python-version.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install 'poetry>=1.2'
+        poetry self add 'poetry-dynamic-versioning[plugin]'
+    - name: Build
+      run: |
+        poetry build
+    - name: publish
+      env:
+        TESTPYPI_API_TOKEN: ${{ secrets.TESTPYPI_API_TOKEN }}
+      run: |
+        poetry config repositories.test-pypi https://test.pypi.org/legacy/
+        poetry config pypi-token.test-pypi $TESTPYPI_API_TOKEN
+        poetry publish -r test-pypi
+
+  docs:
+    if: true # true if documentation is needed.
+    needs: deploy
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml
+```
+
+`docs` は API の文書化が不要なら `false` に設定.  
+
+`./github/workflows/docs.yml`
+
+```python
+# Workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+# build the documentation whenever there are new commits on main
+on:
+  workflow_dispatch:
+  workflow_call:
+
+# security: restrict permissions for CI jobs.
+permissions:
+  contents: read
+
+jobs:
+  # Build the documentation and upload the static HTML files as an artifact.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: .github/python-version.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'poetry>=1.2'
+          poetry install --with docs --no-interaction
+      - name: Build
+        run: |
+          poetry run python ./docs/make.py
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: docs/build/
+
+  # Deploy the artifact to GitHub pages.
+  # This is a separate job so that only actions/deploy-pages has the necessary permissions.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v1
+```
+
+補足事項
+
+- `on: workflow_dispatch`
+
+  `docs.yml` を手動で実行すると `main` ブランチ(default)が渡される.  
+
+- `on: workflow_call`
+
+  `testpypi.yml` 経由で実行されると `on: release` で `v0.1.0` ブランチが渡される.  
+
+  gh-pages の[ブランチ保護ルール](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule)に後者が利用できるように追記が必要.  
+  例えば `v*` などとしておく.  
+
+#### 手順
+
+- `on: push`
+
+  ```bash
+  $ git push
+  ```
+
+- `on: pull_request`
+
+  PR
+
+- `on: release`
+
+  ```bash
+  $ git tag v0.1.0
+  $ git push origin v0.1.0
+  ```
+
+  `v0.1.0` をリリース  
+
+  [Managing releases in a repository](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+
+- `on: workflow_dispatch`
+
+  デバッグ用に手動でイベントをキック.  
 
 ## 参考
 
@@ -1017,3 +1344,4 @@ from .__version__ import __version__
 - [pre-commit](https://github.com/pre-commit/pre-commit)
 - [pdoc](https://github.com/mitmproxy/pdoc)
 - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
+- [GitHub Actions](https://docs.github.com/en/actions)
