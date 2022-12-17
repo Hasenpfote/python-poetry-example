@@ -44,7 +44,7 @@ include_trailing_comma = true
 max-line-length = 88
 extend-ignore = ["E203", "E266", "W503",]
 max-complexity = 10
-exclude = [".git", "__pycache__",".venv", ".tox",]
+extend-exclude = [".venv", "dist", ".github",]
 
 [tool.mypy]
 ignore_errors = true
@@ -56,9 +56,10 @@ ignore_errors = true
 #warn_return_any = true
 #warn_unused_ignores = true
 #warn_redundant_casts = true
+exclude = ["dist/",]
 
 [tool.pytest.ini_options]
 addopts = [
-    "--import-mode=importlib",
+  "--import-mode=importlib",
 ]
 pythonpath = "src"
