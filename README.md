@@ -300,7 +300,7 @@ pythonpath = "src"
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認  
   Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.
   本例では 3.7 が認識されずスキップされる.
--
+  -
 
 インストール
 
@@ -470,9 +470,15 @@ __pycache__/
 
 ## 拡張
 
-基本で目的は果たしているものの, 心許ないので一手間を加える.
+基本で目的は果たしているものの, 心許ないので一手間を加える場合もある.  
 
-### solution
+好みもあるので以降は optional となる.  
+
+### 拡張 1 - linter / formatter
+
+#### 構成
+
+##### solution
 
 - [black](https://github.com/psf/black)
 
@@ -514,7 +520,7 @@ flowchart LR
   end
 ```
 
-### 環境
+##### 環境
 
 `vscode` 環境とそれ以外を考慮しつつ, 最終的にリポジトリへのコミットで同一性を担保する方向で.
 
@@ -561,25 +567,12 @@ flowchart LR
   id_git .-> |git commit| pre-commit .-> id_repo
 ```
 
-### 各種ファイル
+#### 準備
 
-#### `pyproject.toml`
+`pyproject.toml`
 
 ```toml
-[tool.poetry]
-name = "pyenv_poetry_tox_pytest_example"
-version = "0.1.0"
-description = ""
-authors = ["name <email>"]
-readme = "README.md"
-packages = [{include = "pyenv_poetry_tox_pytest_example", from = "src"}]
-
-[tool.poetry.dependencies]
-python = "^3.7"
-
-[tool.poetry.group.dev]
-optional = true
-
+...
 [tool.poetry.group.dev.dependencies]
 black = "^22.10.0"
 isort = "^5.10.1"
@@ -588,16 +581,7 @@ mypy = "^0.991"
 pre-commit = "^2.20.0"
 tox = "^3.27.1"
 
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-pytest = "^7.2.0"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
+...
 [tool.black]
 line-length = 88
 skip-string-normalization = true
@@ -626,25 +610,12 @@ ignore_errors = true
 #warn_redundant_casts = true
 exclude = ["dist/",]
 
-[tool.pytest.ini_options]
-addopts = [
-  "--import-mode=importlib",
-]
-pythonpath = "src"
-```
-
-`vscode` 環境以外は下記で実行
-
-```bash
-$ poetry run black .
-$ poetry run isort .
-$ poetry run flake8 .
-$ poetry run mypy .
+...
 ```
 
 **`mypy` を `ignore_errors = true` で実質的に無効にしているので注意.**
 
-#### `tox.ini`
+`tox.ini`
 
 ```ini
 [tox]
@@ -658,13 +629,7 @@ envlist =
 skipsdist = true
 isolated_build = true
 
-[testenv]
-allowlist_externals =
-    poetry
-commands_pre =
-    poetry install --with test -v
-commands =
-    poetry run pytest -v
+...
 
 [testenv:black]
 deps = black
@@ -693,16 +658,7 @@ commands =
     poetry run mypy .
 ```
 
-`vscode` 環境以外は下記で確認を実行
-
-```bash
-$ poetry run tox black
-$ poetry run tox isort
-$ poetry run tox flake8
-$ poetry run tox mypy
-```
-
-#### `.pre-commit-config.yaml`
+`.pre-commit-config.yaml`
 
 ```yaml
 repos:
@@ -737,11 +693,112 @@ repos:
       - id: mypy
 ```
 
-設定を変更する都度, 下記を実行
+#### 手順
 
-```bash
-$ poetry run pre-commit install
+- インストール
+
+  ```bash
+  $ poetry install --with dev
+  ```
+
+- `vscode` 環境以外で直接実行
+
+  ```bash
+  $ poetry run black .
+  $ poetry run isort .
+  $ poetry run flake8 .
+  $ poetry run mypy .
+  ```
+
+- `vscode` 環境以外で tox 経由で実行
+
+  ```bash
+  $ poetry run tox black
+  $ poetry run tox isort
+  $ poetry run tox flake8
+  $ poetry run tox mypy
+  ```
+
+- `pre-commit` を編集時に適用する
+
+  ```bash
+  $ poetry run pre-commit install
+  ```
+
+### 拡張 2 - API の文書化
+
+ライブラリ色の強いプロジェクトでは API の文書化が必要なので, ここでは [pdoc](https://github.com/mitmproxy/pdoc) を利用した方法を示す.  
+
+[sphinx](https://github.com/sphinx-doc/sphinx) でも大差はない.  
+
+#### 準備
+
+`./pyproject.toml`
+
+```toml
+...
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+pdoc = "^12.3.0"
+tomli = {version = "^2.0.1", python = "<3.11"}
+...
 ```
+
+`./docs/make.py`
+
+```python
+import importlib
+from pathlib import Path
+
+import pdoc
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+
+if __name__ == '__main__':
+    here = Path(__file__).parent
+    project_root_dir = here / '..'
+
+    toml_path = project_root_dir / 'pyproject.toml'
+    with open(toml_path, mode='rb') as f:
+        toml_dict = tomllib.load(f)
+        project = toml_dict['tool']['poetry']['name']
+        module = importlib.import_module(project)
+        version = toml_dict['tool']['poetry']['version']
+
+    # Render docs
+    pdoc.render.configure(
+        docformat='google',
+        footer_text=f'{module.__name__} {version}',
+    )
+
+    pdoc.pdoc(
+        project_root_dir / 'src' / module.__name__,
+        output_directory=project_root_dir / 'docs/build',
+    )
+```
+
+宗教上の理由がある場合は下記を参照.  
+
+[...use numpydoc or Google docstrings?](https://pdoc.dev/docs/pdoc.html#use-numpydoc-or-google-docstrings)
+
+#### 手順
+
+- インストール
+
+  ```bash
+  $ poetry install --with docs
+  ```
+
+- 実行
+
+  ```bash
+  $ poetry run python ./docs/make.py
+  ```
 
 ### 考察
 
@@ -752,14 +809,6 @@ $ poetry run pre-commit install
 vcs を基点に動的なバージョン管理を行うには, [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning) が候補.
 
 `poetry build` 時に自動かつ一時的に `pyproject.toml` や任意のファイルのバージョンを変更をしてくれる.
-
-#### ドキュメント
-
-`pyproject.toml` で一元管理をするなら [sphinx-pyproject](https://github.com/sphinx-toolbox/sphinx-pyproject) が候補.
-
-ただし, `pyproject.toml` が冗長になることと, 動的バージョニングの共通化を図れない.
-
-`conf.py` で `pyproject.toml` を都合よく解釈し設定する方向が無難か?
 
 ## 参考
 
@@ -773,3 +822,4 @@ vcs を基点に動的なバージョン管理を行うには, [poetry-dynamic-v
 - [flake8p](https://github.com/john-hen/Flake8-pyproject)
 - [mypy](https://github.com/python/mypy)
 - [pre-commit](https://github.com/pre-commit/pre-commit)
+- [pdoc](https://github.com/mitmproxy/pdoc)
