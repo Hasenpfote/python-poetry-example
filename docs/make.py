@@ -1,6 +1,8 @@
 import importlib
+import os
 from pathlib import Path
 
+import git
 import pdoc
 
 try:
@@ -18,6 +20,17 @@ if __name__ == '__main__':
         project = toml_dict['tool']['poetry']['name']
         module = importlib.import_module(project)
         version = toml_dict['tool']['poetry']['version']
+
+    if version == '0.0.0':
+        repo_dir = project_root_dir / '.git'
+        if os.path.isdir(repo_dir):
+            repo = git.Repo(repo_dir)
+            if repo.tags:
+                tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+                latest_tag = tags[-1]
+                version = str(latest_tag)
+                if version.startswith('v'):
+                    version = version[1:]
 
     # Render docs
     pdoc.render.configure(

@@ -298,9 +298,9 @@ pythonpath = "src"
 ```
 
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認  
-  Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.  
-  本例では 3.7 が認識されずスキップされる.  
--
+  Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.
+  本例では 3.7 が認識されずスキップされる.
+  -
 
 インストール
 
@@ -467,6 +467,7 @@ __pycache__/
 
 - `.python-version` は環境次第でマイナーバージョンに大きな差があるため.
 - `poetry.lock` はお好みで.
+- 最終的には[Python.gitignore](https://github.com/github/gitignore/blob/main/Python.gitignore)を元に調整.
 
 ## 拡張
 
@@ -569,7 +570,7 @@ flowchart LR
 
 #### 準備
 
-`pyproject.toml`
+`./pyproject.toml`
 
 ```toml
 ...
@@ -615,7 +616,7 @@ exclude = ["dist/",]
 
 **`mypy` を `ignore_errors = true` で実質的に無効にしているので注意.**
 
-`tox.ini`
+`./tox.ini`
 
 ```ini
 [tox]
@@ -658,7 +659,7 @@ commands =
     poetry run mypy .
 ```
 
-`.pre-commit-config.yaml`
+`./.pre-commit-config.yaml`
 
 ```yaml
 repos:
@@ -800,15 +801,207 @@ if __name__ == '__main__':
   $ poetry run python ./docs/make.py
   ```
 
-### 考察
+### 拡張 3 - 動的バージョニング
 
-導入していない機能や言い訳.
+VCS を基点に動的なバージョン管理を行う.  
+[poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning) を利用する.  
 
-#### 動的バージョニング
+利用するのはデフォルト動作で, `poetry build` を実行している間だけ有効であることに注意.  
 
-vcs を基点に動的なバージョン管理を行うには, [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning) が候補.
+```mermaid
+flowchart LR
 
-`poetry build` 時に自動かつ一時的に `pyproject.toml` や任意のファイルのバージョンを変更をしてくれる.
+  id_1(start)
+  id_2(end)
+
+  subgraph sdist/wheel
+    subgraph targets
+      id_t1[pyproject.toml]
+      id_t2[__init__.py]
+      id_t3[__version__.py]
+      id_t3 .-o id_t2
+    end
+  end
+
+  subgraph versioning
+    id_v1[git tag v0.1.0]
+    subgraph build
+      id_b1[poetry build]
+    end
+    id_v1 --> build
+  end
+
+  build .-> sdist/wheel
+  id_1 ==> versioning ==> id_2
+```
+
+#### 準備
+
+[Installation](https://github.com/mtkennerly/poetry-dynamic-versioning#installation)  
+
+"0.0.0" の由来は
+
+> Poetry's typical `version` setting is still required in `[tool.poetry]`, but you are encouraged to use `version = "0.0.0"` as a standard placeholder.
+
+
+
+`./pyproject.toml`
+
+```toml
+[tool.poetry]
+...
+version = "0.0.0"
+...
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+
+[tool.poetry-dynamic-versioning.substitution]
+folders = [
+  { path = "src" }
+]
+...
+```
+
+`./src/pyenv_poetry_tox_pytest_example/__version__.py`
+
+```python
+__version__ = '0.0.0'
+```
+
+`./src/pyenv_poetry_tox_pytest_example/__init__.py`
+
+```python
+from .__version__ import __version__
+```
+
+#### 手順
+
+- プラグインのインストール
+
+  ```bash
+  $ poetry self add "poetry-dynamic-versioning[plugin]"
+  ```
+
+- プラグインのアンインストール
+
+  ```bash
+  $ poetry self remove poetry-dynamic-versioning
+  ```
+
+- バージョニング
+
+  1. タグをつける
+
+     `v0.0.0` から `v0.1.0` にする場合
+
+     ```bash
+     $ git tag v0.1.0
+     ```
+
+  2. ビルドを実行する
+
+     ```bash
+     $ poetry build
+     ```
+
+  `./dist` 内に含まれる対象/関連ファイルのみ影響を受ける.  
+
+  よってリリース後の `pyenv_poetry_tox_pytest_example.__version__` などは意図した動作になる.  
+
+#### 連携
+
+- **拡張 2 - API の文書化** と連携する場合について
+
+  `poetry-dynamic-versioning` を手動で実行する方法も考えられるがとても煩雑になる.  
+
+  よって VCS からタグを取得する方向で済ませる.  
+
+  ```mermaid
+  flowchart LR
+
+    subgraph versioning
+      id_v1[git tag v0.1.0]
+    end
+
+    subgraph documentation
+      id_d1[poetry run python ./docs/make.py]
+    end
+
+    build[(./docs/build)]
+
+    versioning ==> documentation
+    id_d1 .-> build
+  ```
+
+  `./pyproject.toml`
+
+  ```toml
+  ...
+  [tool.poetry.group.docs]
+  optional = true
+
+  [tool.poetry.group.docs.dependencies]
+  pdoc = "^12.3.0"
+  tomli = {version = "^2.0.1", python = "<3.11"}
+  GitPython = "^3.1.29"
+  ...
+  ```
+
+  `./docs/make.py`
+
+  ```python
+  import importlib
+  import os
+  from pathlib import Path
+
+  import git
+  import pdoc
+
+  try:
+      import tomllib
+  except ModuleNotFoundError:
+      import tomli as tomllib
+
+  if __name__ == '__main__':
+      here = Path(__file__).parent
+      project_root_dir = here / '..'
+
+      toml_path = project_root_dir / 'pyproject.toml'
+      with open(toml_path, mode='rb') as f:
+          toml_dict = tomllib.load(f)
+          project = toml_dict['tool']['poetry']['name']
+          module = importlib.import_module(project)
+          version = toml_dict['tool']['poetry']['version']
+
+      if version == '0.0.0':
+          repo_dir = project_root_dir / '.git'
+          if os.path.isdir(repo_dir):
+              repo = git.Repo(repo_dir)
+              if repo.tags:
+                  tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+                  latest_tag = tags[-1]
+                  version = str(latest_tag)
+                  if version.startswith('v'):
+                      version = version[1:]
+
+      # Render docs
+      pdoc.render.configure(
+          footer_text=f'{module.__name__} {version}',
+      )
+
+      pdoc.pdoc(
+          project_root_dir / 'src' / module.__name__,
+          output_directory=project_root_dir / 'docs/build',
+      )
+  ```
+
+-
 
 ## 参考
 
@@ -823,3 +1016,4 @@ vcs を基点に動的なバージョン管理を行うには, [poetry-dynamic-v
 - [mypy](https://github.com/python/mypy)
 - [pre-commit](https://github.com/pre-commit/pre-commit)
 - [pdoc](https://github.com/mitmproxy/pdoc)
+- [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
