@@ -292,7 +292,7 @@ pytest = "^7.2.0"
 
 [tool.pytest.ini_options]
 addopts = [
-    "--import-mode=importlib",
+  "--import-mode=importlib",
 ]
 pythonpath = "src"
 ```
@@ -430,7 +430,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 addopts = [
-    "--import-mode=importlib",
+  "--import-mode=importlib",
 ]
 pythonpath = "src"
 ```
@@ -612,7 +612,7 @@ include_trailing_comma = true
 max-line-length = 88
 extend-ignore = ["E203", "E266", "W503",]
 max-complexity = 10
-exclude = [".git", "__pycache__",".venv", ".tox",]
+extend-exclude = [".venv", "dist", ".github",]
 
 [tool.mypy]
 ignore_errors = true
@@ -624,10 +624,11 @@ ignore_errors = true
 #warn_return_any = true
 #warn_unused_ignores = true
 #warn_redundant_casts = true
+exclude = ["dist/",]
 
 [tool.pytest.ini_options]
 addopts = [
-    "--import-mode=importlib",
+  "--import-mode=importlib",
 ]
 pythonpath = "src"
 ```
@@ -725,10 +726,11 @@ repos:
     rev: 5.10.1
     hooks:
       - id: isort
-  - repo: https://github.com/john-hen/Flake8-pyproject
-    rev: 1.2.2
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
     hooks:
-      - id: Flake8-pyproject
+      - id: flake8
+        additional_dependencies: [Flake8-pyproject]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.991
     hooks:
