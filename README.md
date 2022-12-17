@@ -1,4 +1,4 @@
-[![Python package](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/python-package.yml/badge.svg)](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/python-package.yml)
+[![Test](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/test.yml/badge.svg)](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/test.yml)
 
 # pyenv + poetry + tox + pytest 環境構築例
 
@@ -316,7 +316,6 @@ pythonpath = "src"
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認  
   Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.  
   本例では 3.7 が認識されずスキップされる.
-  -
 
 インストール
 
