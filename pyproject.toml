@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyenv_poetry_tox_pytest_example"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["Hasenpfote <Hasenpfote36@gmail.com>"]
 readme = "README.md"
