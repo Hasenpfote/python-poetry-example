@@ -741,6 +741,19 @@ repos:
   $ poetry run pre-commit install
   ```
 
+#### 補足
+
+- 実行パス `.` の由来や除外するディレクトリ
+  - black  
+    デフォルト動作は `.gitignore` を利用する.  
+    思想が垣間見れるのは, [ココ](https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#next-steps) や [ココ](https://black.readthedocs.io/en/stable/usage_and_configuration/file_collection_and_discovery.html#gitignore).  
+  - isort  
+    [Compatibility with black](https://pycqa.github.io/isort/docs/configuration/black_compatibility.html) を謳っているので追従している.  
+  - flake8  
+    何もしない.  
+  - mypy  
+    デフォルト動作は隠しディレクトリを除外する.
+
 ### 拡張 2 - API の文書化
 
 ライブラリ色の強いプロジェクトでは API の文書化が必要なので, ここでは [pdoc](https://github.com/mitmproxy/pdoc) を利用した方法を示す.  
@@ -1289,19 +1302,6 @@ jobs:
         uses: actions/deploy-pages@v1
 ```
 
-補足事項
-
-- `on: workflow_dispatch`
-
-  `docs.yml` を手動で実行すると `main` ブランチ(default)が渡される.  
-
-- `on: workflow_call`
-
-  `testpypi.yml` 経由で実行されると `on: release` で `v0.1.0` ブランチが渡される.  
-
-  gh-pages の[ブランチ保護ルール](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule)に後者が利用できるように追記が必要.  
-  例えば `v*` などとしておく.  
-
 #### 手順
 
 - `on: push`
@@ -1328,6 +1328,19 @@ jobs:
 - `on: workflow_dispatch`
 
   デバッグ用に手動でイベントをキック.  
+
+#### 補足
+
+- `on: workflow_dispatch`
+
+  `docs.yml` を手動で実行すると `main` ブランチ(default)が渡される.  
+
+- `on: workflow_call`
+
+  `testpypi.yml` 経由で実行されると `on: release` で `v0.1.0` ブランチが渡される.  
+
+  gh-pages の[ブランチ保護ルール](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule)に後者が利用できるように追記が必要.  
+  例えば `v*` などとしておく.  
 
 ## 参考
 
