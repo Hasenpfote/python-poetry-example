@@ -6,6 +6,10 @@
 
 python で pyenv + poetry + tox + pytest に
 
+- pytest の拡張
+
+  pytest-mock + pytest-cov
+
 - linter/formatter
 
   black + isort + flake8 + mypy
@@ -340,8 +344,7 @@ $ poetry show
 ```ini
 [tox]
 envlist =
-    py37
-    py38
+    py{37,38}
 skipsdist = true
 isolated_build = true
 
@@ -455,8 +458,7 @@ pythonpath = "src"
 ```ini
 [tox]
 envlist =
-    py37
-    py38
+    py{37,38}
 skipsdist = true
 isolated_build = true
 
@@ -490,7 +492,110 @@ __pycache__/
 
 好みもあるので以降は optional となる.  
 
-### 拡張 1 - linter/formatter
+### 拡張 1 - pytest の拡張
+
+- mocker fixture の追加
+
+  [pytest-mock](https://github.com/pytest-dev/pytest-mock)
+
+- coverage reports の追加
+
+  [pytest-cov](https://github.com/pytest-dev/pytest-cov)
+
+#### 準備
+
+`./pyproject.toml`
+
+```toml
+...
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2.0"
+pytest-mock = "^3.10.0"
+pytest-cov = "^4.0.0"
+...
+```
+
+`./tox.ini`
+
+```ini
+[tox]
+envlist =
+    clean
+    py{37,38}
+    report
+skipsdist = true
+isolated_build = true
+
+[testenv]
+allowlist_externals =
+    poetry
+commands_pre =
+    poetry install --with test -v
+commands =
+    poetry run pytest --cov --cov-append --cov-report=term-missing -v
+
+[testenv:clean]
+deps = coverage
+skip_install = true
+commands_pre = # nop
+commands =
+    poetry run coverage erase
+
+[testenv:report]
+deps = coverage
+skip_install = true
+commands_pre = # nop
+commands =
+    poetry run coverage report -m
+    poetry run coverage html
+
+...
+```
+
+#### 手順
+
+- インストール
+
+  ```bash
+  $ poetry install --with test
+  ```
+
+- 実行
+
+  ```bash
+  $ poetry run tox -r -e clean,py37,py38,report
+  ```
+
+  並列で行う場合は,
+
+  `./tox.ini`
+
+  ```ini
+  ...
+  [testenv]
+  ...
+  depends =
+      py{37,38}: clean
+      report: py{37,38}
+  # Required if -p is enabled on Windows.
+  # https://github.com/tox-dev/tox/pull/2641
+  setenv =
+      PYTHONIOENCODING=utf-8
+  ...
+  ```
+
+  を追記し
+
+  ```bash
+  $ poetry run tox -r -e clean,py37,py38,report -p all
+  ```
+
+  順序は `depends` で解決するので適当でもよい.  
+
+### 拡張 2 - linter/formatter
 
 #### 構成
 
@@ -636,8 +741,7 @@ exclude = ["dist/",]
 ```ini
 [tox]
 envlist =
-    py37
-    py38
+    py{37,38}
     black
     isort
     flake8
@@ -754,7 +858,7 @@ repos:
   - mypy  
     デフォルト動作は隠しディレクトリを除外する.
 
-### 拡張 2 - API の文書化
+### 拡張 3 - API の文書化
 
 ライブラリ色の強いプロジェクトでは API の文書化が必要なので, ここでは [pdoc](https://github.com/mitmproxy/pdoc) を利用した方法を示す.  
 
@@ -829,7 +933,7 @@ if __name__ == '__main__':
   $ poetry run python ./docs/make.py
   ```
 
-### 拡張 3 - 動的バージョニング
+### 拡張 4 - 動的バージョニング
 
 VCS を基点に動的なバージョン管理を行う.  
 [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning) を利用する.  
@@ -944,7 +1048,7 @@ from .__version__ import __version__
 
 #### 連携
 
-- **拡張 2 - API の文書化** と連携する場合について
+- **拡張 3 - API の文書化** と連携する場合について
 
   `poetry-dynamic-versioning` を手動で実行する方法も考えられるがとても煩雑になる.  
 
@@ -1029,7 +1133,7 @@ from .__version__ import __version__
       )
   ```
 
-### 拡張 4 - CI/CD
+### 拡張 5 - CI/CD
 
 ここでは [GitHub Actions](https://docs.github.com/en/actions) を利用した例となる.  
 
@@ -1349,6 +1453,8 @@ jobs:
 - [Poetry](https://python-poetry.org)
 - [tox](https://github.com/tox-dev/tox)
 - [pytest](https://github.com/pytest-dev/pytest)
+- [pytest-mock](https://github.com/pytest-dev/pytest-mock)
+- [pytest-cov](https://github.com/pytest-dev/pytest-cov)
 - [black](https://github.com/psf/black)
 - [isort](https://github.com/PyCQA/isort)
 - [flake8p](https://github.com/john-hen/Flake8-pyproject)

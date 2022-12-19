@@ -25,6 +25,8 @@ optional = true
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.0"
+pytest-mock = "^3.10.0"
+pytest-cov = "^4.0.0"
 
 [tool.poetry.group.docs]
 optional = true
