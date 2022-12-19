@@ -1,4 +1,5 @@
 import sys
+import time
 
 
 def add(a, b):
@@ -21,3 +22,9 @@ def print_python_version():
     '''Displays python version.'''
     print(f"{sys.version=}")  # Syntax for Python 3.8 or higher.
     # print(f"sys.version={sys.version}")
+
+
+def print_with_delay(text):
+    delay = len(text) / 100 + 1.0
+    time.sleep(delay)
+    print(text)
