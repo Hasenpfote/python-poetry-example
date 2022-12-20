@@ -4,7 +4,7 @@
 
 ## 要約
 
-python で pyenv + poetry + tox + pytest に
+python で pyenv + poetry + tox + pytest に optional で
 
 - pytest の拡張
 
@@ -27,6 +27,7 @@ python で pyenv + poetry + tox + pytest に
   gh-actions
 
 特に注釈がなければ, 各種情報の背景は 2022年12月あたり.  
+**本例では python 3.7 環境でエラーが発生するようにしている.**  
 
 ## 前提条件
 
@@ -319,7 +320,10 @@ pythonpath = "src"
 
 - [2022/12/09] tox >= 4.0.0 で仮想環境を認識できない不具合を確認  
   Linux Mint 21 / Windows10 共に, アクティブになっている１つの環境しか認識されない.  
-  本例では 3.7 が認識されずスキップされる.
+  本例では 3.7 が認識されずスキップされる.  
+  issue では [Tox 4 breaks in CI/CD pipelines where user does not exist
+#2702](https://github.com/tox-dev/tox/issues/2702) が似ている.  
+  4系で環境変数周りが大幅に変更された影響と思われるので様子見が必要.  
 
 インストール
 
