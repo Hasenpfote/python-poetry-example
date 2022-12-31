@@ -1,4 +1,4 @@
-from pyenv_poetry_tox_pytest_example import utils
+from python_poetry_example import utils
 
 
 def test_add():
@@ -22,9 +22,7 @@ def test_print_python_version(capfd):
 
 
 def test_print_with_delay(capfd, mocker):
-    m = mocker.patch(
-        'pyenv_poetry_tox_pytest_example.utils.time.sleep', return_value=None
-    )
+    m = mocker.patch('python_poetry_example.utils.time.sleep', return_value=None)
 
     text = 'Hello, world!'
     utils.print_with_delay(text)

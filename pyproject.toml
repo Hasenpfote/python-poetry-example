@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "pyenv_poetry_tox_pytest_example"
+name = "python-poetry-example"
 version = "0.0.0"
 description = ""
 authors = ["Hasenpfote <Hasenpfote36@gmail.com>"]
 readme = "README.md"
-packages = [{include = "pyenv_poetry_tox_pytest_example", from = "src"}]
+packages = [{include = "python_poetry_example", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.7"

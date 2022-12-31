@@ -1,4 +1,4 @@
-[![Test](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/test.yml/badge.svg)](https://github.com/Hasenpfote/pyenv_poetry_tox_pytest_example/actions/workflows/test.yml)
+[![Test](https://github.com/Hasenpfote/python-poetry-example/actions/workflows/test.yml/badge.svg)](https://github.com/Hasenpfote/python-poetry-example/actions/workflows/test.yml)
 
 # pyenv + poetry + tox + pytest 環境構築例
 
