@@ -1,4 +1,3 @@
-import importlib
 import os
 from pathlib import Path
 
@@ -17,8 +16,8 @@ if __name__ == '__main__':
     toml_path = project_root_dir / 'pyproject.toml'
     with open(toml_path, mode='rb') as f:
         toml_dict = tomllib.load(f)
-        project = toml_dict['tool']['poetry']['name']
-        module = importlib.import_module(project)
+        project_name = toml_dict['tool']['poetry']['name']
+        module_name = toml_dict['tool']['poetry']['packages'][0]['include']
         version = toml_dict['tool']['poetry']['version']
 
     if version == '0.0.0':
@@ -35,10 +34,10 @@ if __name__ == '__main__':
     # Render docs
     pdoc.render.configure(
         docformat='google',
-        footer_text=f'{module.__name__} {version}',
+        footer_text=f'{project_name} {version}',
     )
 
     pdoc.pdoc(
-        project_root_dir / 'src' / module.__name__,
+        project_root_dir / 'src' / module_name,
         output_directory=project_root_dir / 'docs/build',
     )
