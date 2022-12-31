@@ -160,17 +160,17 @@ $ poetry config virtualenvs.in-project true --local
 任意の場所で
 
 ```bash
-$ poetry new --src pyenv_poetry_tox_pytest_example
+$ poetry new --src python-poetry-example
 ```
 
 ディレクトリ
 
 ```bash
-pyenv_poetry_tox_pytest_example
+python-poetry-example
 ├─ pyproject.toml
 ├─ README.md
 ├─ src
-│  └─ pyenv_poetry_tox_pytest_example
+│  └─ python_poetry_example
 │      └─ __init__.py
 └─tests
    └─ __init__.py
@@ -184,7 +184,7 @@ pyenv_poetry_tox_pytest_example
 プロジェクトルートに移動
 
 ```bash
-$ cd pyenv_poetry_tox_pytest_example
+$ cd python-poetry-example
 ```
 
 **以降は特に注釈がない限りはプロジェクトルートでコマンドを実行している**
@@ -218,12 +218,12 @@ Python 3.8.10
 ディレクトリ
 
 ```bash
-pyenv_poetry_tox_pytest_example
+python-poetry-example
 ├─ .python-version (New!)
 ├─ pyproject.toml
 ├─ README.md
 ├─ src
-│  └─ pyenv_poetry_tox_pytest_example
+│  └─ python_poetry_example
 │      └─ __init__.py
 └─tests
    └─ __init__.py
@@ -259,14 +259,14 @@ $ poetry env info
 ディレクトリ
 
 ```bash
-pyenv_poetry_tox_pytest_example
+python-poetry-example
 ├─ .python-version
 ├─ pyproject.toml
 ├─ README.md
 ├─ .venv (New!)
 │  └─ ...
 ├─ src
-│  └─ pyenv_poetry_tox_pytest_example
+│  └─ python_poetry_example
 │      └─ __init__.py
 └─tests
    └─ __init__.py
@@ -279,14 +279,14 @@ pyenv_poetry_tox_pytest_example
 ディレクトリ
 
 ```bash
-pyenv_poetry_tox_pytest_example
+python-poetry-example
 ├─ .python-version
 ├─ pyproject.toml
 ├─ README.md
 ├─ .venv
 │  └─ ...
 ├─ src
-│  └─ pyenv_poetry_tox_pytest_example
+│  └─ python_poetry_example
 │      ├─ __init__.py
 │      └─ utils.py (New!)
 └─tests
@@ -367,7 +367,7 @@ commands =
 ディレクトリ
 
 ```bash
-pyenv_poetry_tox_pytest_example
+python-poetry-example
 ├─ .python-version
 ├─ poetry.lock
 ├─ pyproject.toml
@@ -376,7 +376,7 @@ pyenv_poetry_tox_pytest_example
 ├─ .venv
 │  └─ ...
 ├─ src
-│  └─ pyenv_poetry_tox_pytest_example
+│  └─ python_poetry_example
 │      ├─ __init__.py
 │      └─ utils.py
 └─tests
@@ -395,7 +395,7 @@ $ poetry run tox
 ディレクトリ
 
 ```bash
-pyenv_poetry_tox_pytest_example
+python-poetry-example
 ├─ .python-version
 ├─ poetry.lock
 ├─ pyproject.toml
@@ -406,7 +406,7 @@ pyenv_poetry_tox_pytest_example
 ├─ .venv
 │  └─ ...
 ├─ src
-│  └─ pyenv_poetry_tox_pytest_example
+│  └─ python_poetry_example
 │      ├─ __pycache__
 │      │  └─ ...
 │      ├─ __init__.py
@@ -424,12 +424,12 @@ pyenv_poetry_tox_pytest_example
 
 ```toml
 [tool.poetry]
-name = "pyenv_poetry_tox_pytest_example"
+name = "python-poetry-example"
 version = "0.1.0"
 description = ""
 authors = ["name <email>"]
 readme = "README.md"
-packages = [{include = "pyenv_poetry_tox_pytest_example", from = "src"}]
+packages = [{include = "python_poetry_example", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -1004,13 +1004,13 @@ folders = [
 ...
 ```
 
-`./src/pyenv_poetry_tox_pytest_example/__version__.py`
+`./src/python_poetry_example/__version__.py`
 
 ```python
 __version__ = '0.0.0'
 ```
 
-`./src/pyenv_poetry_tox_pytest_example/__init__.py`
+`./src/python_poetry_example/__init__.py`
 
 ```python
 from .__version__ import __version__
@@ -1048,7 +1048,7 @@ from .__version__ import __version__
 
   `./dist` 内に含まれる対象/関連ファイルのみ影響を受ける.  
 
-  よってリリース後の `pyenv_poetry_tox_pytest_example.__version__` などは意図した動作になる.  
+  よってリリース後の `python_poetry_example.__version__` などは意図した動作になる.  
 
 #### 連携
 
