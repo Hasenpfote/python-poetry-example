@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest]
-        python-version: ['3.7']
+        python-version: ['3.8']
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -104,7 +104,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest]
-        python-version: ['3.7']
+        python-version: ['3.8']
 
     runs-on: ${{ matrix.os }}
     steps:
