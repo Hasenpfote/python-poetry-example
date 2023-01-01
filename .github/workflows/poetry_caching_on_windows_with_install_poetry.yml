@@ -1,0 +1,157 @@
+name: Poetry caching on Windows with install-poetry
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+env:
+  config-poetry-version: '' # Empty is the latest version.
+  #config-poetry-path: ${USERPROFILE}\.local\bin # An error occurs.
+  config-poetry-path: ${USERPROFILE}\.local\venv\Scripts
+  config-poetry-cache-paths: |
+    ~\.local\VERSION
+    #~\.local\bin\poetry.exe # An error occurs.
+    ~\.local\venv
+  config-poetry-cache-key-fmt: 'd-poetry-{0}-{1}-python-{2}'
+  config-venv-cache-key-fmt: 'd-venv-{0}-python-{1}-{2}'
+
+jobs:
+  create-cache:
+    name: caching 1/2 - ${{ matrix.os }}, ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        python-version: ['3.7']
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Load cached Poetry installation
+        id: cached-poetry
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.config-poetry-cache-paths }}
+          key: ${{ format(env.config-poetry-cache-key-fmt, env.config-poetry-version, matrix.os, steps.setup-python.outputs.python-version) }}
+
+      - name: Install Poetry ${{ env.config-poetry-version }} for Windows
+        if: steps.cached-poetry.outputs.cache-hit != 'true'
+        env:
+          POETRY_VERSION: ${{ env.config-poetry-version }}
+        uses: snok/install-poetry@v1
+
+      - name: Add Poetry to the PATH environment variable
+        shell: bash
+        run: |
+          echo "${{ env.config-poetry-path }}" >> $GITHUB_PATH
+
+      - name: Debug
+        shell: cmd
+        run: |
+          set PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ format(env.config-venv-cache-key-fmt, matrix.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
+
+      - name: Set the environment used by Poetry on Windows 1/2
+        if: runner.os == 'Windows' && steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        id: py
+        shell: bash
+        run: |
+          VER='${{ steps.setup-python.outputs.python-version }}'
+          ARR=(${VER//./ })
+          echo "tag=${ARR[0]}.${ARR[1]}" >> $GITHUB_OUTPUT
+
+      - name: Set the environment used by Poetry on Windows 2/2
+        if: runner.os == 'Windows' && steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          PY_PYTHON: ${{ steps.py.outputs.tag }}
+        run: |
+          poetry env use py
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root --with dev
+
+      - name: Test with pytest
+        run: |
+          poetry run tox -e py
+
+  # Same as above.
+  load-cache:
+    needs: create-cache
+    name: caching 2/2 - ${{ matrix.os }}, ${{ matrix.python-version }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        python-version: ['3.7']
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Load cached Poetry installation
+        id: cached-poetry
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.config-poetry-cache-paths }}
+          key: ${{ format(env.config-poetry-cache-key-fmt, env.config-poetry-version, matrix.os, steps.setup-python.outputs.python-version) }}
+
+      # No need if you have cached Poetry.
+      #- name: Install Poetry ${{ env.config-poetry-version }} for Windows
+      #  if: steps.cached-poetry.outputs.cache-hit != 'true'
+      #  env:
+      #    POETRY_VERSION: ${{ env.config-poetry-version }}
+      #  uses: snok/install-poetry@v1
+
+      - name: Add Poetry to the PATH environment variable
+        shell: bash
+        run: |
+          echo "${{ env.config-poetry-path }}" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ format(env.config-venv-cache-key-fmt, matrix.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
+
+      # No need if you have cached venv.
+      #- name: Install dependencies
+      #  if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      #  run: poetry install --no-interaction --no-root --with dev
+
+      - name: Test with pytest
+        run: |
+          poetry run tox -e py

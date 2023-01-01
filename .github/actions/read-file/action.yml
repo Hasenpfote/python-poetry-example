@@ -1,0 +1,21 @@
+inputs:
+  path:
+    description: 'Path to file'
+    required: true
+
+outputs:
+  content:
+    description: 'File content'
+    value: ${{ steps.read-file.outputs.content }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Read file
+      id: read-file
+      shell: bash
+      run: |
+        CONTENT=$(cat ${{ inputs.path }})
+        echo 'content<<EOF' >> $GITHUB_OUTPUT
+        echo "${CONTENT}" >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT

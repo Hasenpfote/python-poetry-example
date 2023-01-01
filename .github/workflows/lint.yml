@@ -1,9 +1,12 @@
-name: Publish the package to TestPyPI
+name: Lint
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+  push:
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   env_prep:
@@ -20,7 +23,7 @@ jobs:
         with:
           path: .github/workflows/env.json
 
-  deploy:
+  build:
     needs: env_prep
     env: ${{ fromJson(needs.env_prep.outputs.env) }}
 
@@ -28,8 +31,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Python ${{ env.python-version }}
         id: setup-python
@@ -47,30 +48,14 @@ jobs:
           poetry-home: ${{ env.poetry-home }}
           poetry-path: ${{ env.poetry-path }}
 
-      - name: Configure Poetry
-        env:
-          TESTPYPI_API_TOKEN: ${{ secrets.TESTPYPI_API_TOKEN }}
-        run: |
-          poetry config repositories.test-pypi https://test.pypi.org/legacy/
-          poetry config pypi-token.test-pypi $TESTPYPI_API_TOKEN
+      - name: Set up Poetry dependencies
+        id: setup-poetry-dependencies
+        uses: ./.github/actions/setup-poetry-dependencies
+        with:
+          cache-key: ${{ format(env.venv-cache-key-fmt, runner.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
+          python-version: ${{ steps.setup-python.outputs.python-version }}
+          poetry-install-args: --no-interaction --no-root --with dev
 
-      - name: Install dependencies
+      - name: Lint with tox
         run: |
-          poetry self add 'poetry-dynamic-versioning[plugin]'
-
-      - name: Build
-        run: |
-          poetry build
-
-      - name: Publish
-        run: |
-          poetry publish -r test-pypi
-
-  docs:
-    if: true # true if documentation is needed.
-    needs: deploy
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/docs.yml
+          poetry run tox -e black,isort,flake8,mypy -p all -q

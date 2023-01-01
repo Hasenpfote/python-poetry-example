@@ -1,0 +1,102 @@
+name: Poetry caching feature
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  matrix_prep:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read-file.outputs.content }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Read JSON file
+        id: read-file
+        uses: ./.github/actions/read-file
+        with:
+          path: .github/workflows/test_matrix.json
+
+  create-cache:
+    needs: matrix_prep
+    name: caching 1/2 - ${{ matrix.os }}, ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        id: setup-poetry
+        uses: ./.github/actions/setup-poetry
+        with:
+          cache-path: ${{ matrix.poetry-cache-paths }}
+          cache-key: pcf-${{ format(matrix.poetry-cache-key-fmt, matrix.poetry-version, matrix.os, steps.setup-python.outputs.python-version) }}
+          poetry-version: ${{ matrix.poetry-version }}
+          poetry-home: ${{ matrix.poetry-home }}
+          poetry-path: ${{ matrix.poetry-path }}
+
+      - name: Set up Poetry dependencies
+        id: setup-poetry-dependencies
+        uses: ./.github/actions/setup-poetry-dependencies
+        with:
+          cache-key: pcf-${{ format(matrix.venv-cache-key-fmt, matrix.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
+          python-version: ${{ steps.setup-python.outputs.python-version }}
+          poetry-install-args: --no-interaction --no-root --with dev
+
+      - name: Test with pytest
+        run: |
+          ${{ steps.setup-poetry-dependencies.outputs.venv-activate }}
+          tox -e py -- -v --color=yes
+          deactivate
+
+  # Same as above.
+  load-cache:
+    needs: [matrix_prep, create-cache]
+    name: caching 2/2 - ${{ matrix.os }}, ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        id: setup-poetry
+        uses: ./.github/actions/setup-poetry
+        with:
+          cache-path: ${{ matrix.poetry-cache-paths }}
+          cache-key: pcf-${{ format(matrix.poetry-cache-key-fmt, matrix.poetry-version, matrix.os, steps.setup-python.outputs.python-version) }}
+          poetry-path: ${{ matrix.poetry-path }}
+
+      - name: Set up Poetry dependencies
+        id: setup-poetry-dependencies
+        uses: ./.github/actions/setup-poetry-dependencies
+        with:
+          cache-key: pcf-${{ format(matrix.venv-cache-key-fmt, matrix.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
+
+      - name: Test with pytest
+        run: |
+          ${{ steps.setup-poetry-dependencies.outputs.venv-activate }}
+          tox -e py -- -v --color=yes
+          deactivate

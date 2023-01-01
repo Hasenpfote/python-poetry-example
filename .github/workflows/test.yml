@@ -1,103 +1,66 @@
 name: Test
 
-on: [ push, pull_request ]
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  black:
-    if: true
+  matrix_prep:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read-file.outputs.content }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Read JSON file
+        id: read-file
+        uses: ./.github/actions/read-file
         with:
-          python-version-file: .github/python-version.txt
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install 'poetry>=1.2'
-          poetry install --with dev --no-interaction
-      - name: Lint with black
-        run: |
-          poetry run tox -e black
+          path: .github/workflows/test_matrix.json
 
-  isort:
-    if: true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version-file: .github/python-version.txt
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install 'poetry>=1.2'
-          poetry install --with dev --no-interaction
-      - name: Lint with isort
-        run: |
-          poetry run tox -e isort
-
-  lint-pr:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: TrueBrain/actions-flake8@v2
-
-  lint-local:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version-file: .github/python-version.txt
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install 'poetry>=1.2'
-          poetry install --with dev --no-interaction
-      - name: Lint with flake8
-        run: |
-          poetry run tox -e flake8
-
-  mypy:
-    if: true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version-file: .github/python-version.txt
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install 'poetry>=1.2'
-          poetry install --with dev --no-interaction
-      - name: Lint with mypy
-        run: |
-          poetry run tox -e mypy
-
-  test:
-    runs-on: ubuntu-20.04
+  build:
+    needs: matrix_prep
     strategy:
       fail-fast: false
-      matrix:
-        python-version: ['3.7', '3.8']
+      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ format('build ({0}, {1})', matrix.os, matrix.python-version) }}
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install 'poetry>=1.2'
-        poetry install --with dev --no-interaction
-    - name: Test with pytest
-      run: |
-        poetry run tox -e py
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        id: setup-poetry
+        uses: ./.github/actions/setup-poetry
+        with:
+          cache-path: ${{ matrix.poetry-cache-paths }}
+          cache-key: ${{ format(matrix.poetry-cache-key-fmt, matrix.poetry-version, matrix.os, steps.setup-python.outputs.python-version) }}
+          poetry-version: ${{ matrix.poetry-version }}
+          poetry-home: ${{ matrix.poetry-home }}
+          poetry-path: ${{ matrix.poetry-path }}
+
+      - name: Set up Poetry dependencies
+        id: setup-poetry-dependencies
+        uses: ./.github/actions/setup-poetry-dependencies
+        with:
+          cache-key: ${{ format(matrix.venv-cache-key-fmt, matrix.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
+          python-version: ${{ steps.setup-python.outputs.python-version }}
+          poetry-install-args: --no-interaction --no-root --with dev
+
+      - name: Test with pytest
+        run: |
+          ${{ steps.setup-poetry-dependencies.outputs.venv-activate }}
+          tox -e py -- -v --color=yes
+          deactivate

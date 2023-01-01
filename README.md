@@ -1448,6 +1448,10 @@ jobs:
   gh-pages の[ブランチ保護ルール](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule)に後者が利用できるように追記が必要.  
   例えば `v*` などとしておく.  
 
+#### キャッシュ
+`Poetry` や依存関係のキャッシュを行うことでアクションの実行時間を低減する.  
+分量が多いため [issue](https://github.com/Hasenpfote/python-poetry-example/issues/2) で扱う.  
+
 ## 参考
 
 - [Simple Python Version Management: pyenv](https://github.com/pyenv/pyenv)
