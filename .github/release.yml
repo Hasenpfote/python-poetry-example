@@ -1,0 +1,70 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - octocat
+
+  categories:
+    - title: 💥 Breaking Changes
+      labels:
+        - breaking
+
+    - title: 🔥 Deprecations and Removals
+      labels:
+        - deprecation
+        - 'type: deprecation'
+
+    - title: ✨ Features
+      labels:
+        - feature
+        - 'type: feature'
+
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - 'type: bug'
+
+    - title: 🛠️ Improvements
+      labels:
+        - improvement
+        - 'type: enhancement'
+
+    - title: ⚡️ Performance Improvements
+      labels:
+        - performance
+        - 'type: performance'
+
+    - title: 📚 Documentation Improvements
+      labels:
+        - documentation
+        - 'type: documentation'
+
+    - title: ⚗️ Code Improvements
+      labels:
+        - refactor
+        - 'type: refactor'
+
+    - title: 🧪 Testing Improvements
+      labels:
+        - testing
+        - 'type: testing'
+
+    - title: 🔧 Maintenance
+      labels:
+        - maintenance
+        - 'type: maintenance'
+
+    - title: ⛓️ Dependency Updates
+      labels:
+        - dependencies
+        - 'type: dependencies'
+
+    - title: 🔒 Security Updates
+      labels:
+        - security
+        - 'type: security'
+
+    - title: 🔄 Other Changes
+      labels:
+        - '*'
