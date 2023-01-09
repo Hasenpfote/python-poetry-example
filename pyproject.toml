@@ -24,9 +24,9 @@ tox = "^3.27.1"
 optional = true
 
 [tool.poetry.group.test.dependencies]
+coverage = "^7.0.4"
 pytest = "^7.2.0"
 pytest-mock = "^3.10.0"
-pytest-cov = "^4.0.0"
 
 [tool.poetry.group.docs]
 optional = true
@@ -83,3 +83,20 @@ addopts = [
   "--import-mode=importlib",
 ]
 pythonpath = "src"
+
+[tool.coverage.paths]
+source = [
+  "src/",
+  "/Users/runner/work/*/*/src",
+]
+
+[tool.coverage.run]
+relative_files = true
+source = [
+  "src/",
+]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+#fail_under = 100

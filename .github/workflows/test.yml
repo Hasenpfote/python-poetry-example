@@ -35,6 +35,8 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     name: ${{ format('build ({0}, {1})', matrix.os, matrix.python-version) }}
+    outputs:
+      enable-coverage: ${{ matrix.enable-coverage }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -68,3 +70,15 @@ jobs:
           ${{ steps.setup-poetry-dependencies.outputs.venv-activate }}
           tox -e py -- -v --color=yes
           deactivate
+
+      - name: Upload coverage reports
+        if: matrix.enable-coverage == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-reports
+          path: .coverage.*
+
+  upload-coverage:
+    needs: [build]
+    if: needs.build.outputs.enable-coverage == 'true'
+    uses: ./.github/workflows/codecov_upload.yml
