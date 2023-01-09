@@ -1,3 +1,6 @@
+import platform
+import sys
+
 from python_poetry_example import utils
 
 
@@ -11,6 +14,22 @@ def test_print_greet(capfd):
     out, err = capfd.readouterr()
     assert out == 'Hello, world!\n'
     assert err == ''
+
+
+def test_print_mascot(capfd):
+    utils.print_mascot()
+
+    d = {'Linux': 'Tux', 'Darwin': 'Dogcow'}
+    name = d.get(platform.system(), 'Unknown')
+
+    out, err = capfd.readouterr()
+    assert out == name + '\n'
+    assert err == ''
+
+
+def test_is_py38_or_higher():
+    is_py38_or_higher = False if sys.version_info < (3, 8) else True
+    assert utils.is_py38_or_higher() == is_py38_or_higher
 
 
 def test_print_python_version(capfd):
