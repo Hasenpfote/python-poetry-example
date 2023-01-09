@@ -1,4 +1,6 @@
+[![Lint](https://github.com/Hasenpfote/python-poetry-example/actions/workflows/lint.yml/badge.svg)](https://github.com/Hasenpfote/python-poetry-example/actions/workflows/lint.yml)
 [![Test](https://github.com/Hasenpfote/python-poetry-example/actions/workflows/test.yml/badge.svg)](https://github.com/Hasenpfote/python-poetry-example/actions/workflows/test.yml)
+[![codecov](https://codecov.io/github/Hasenpfote/python-poetry-example/branch/main/graph/badge.svg?token=8BDD1K119N)](https://codecov.io/github/Hasenpfote/python-poetry-example)
 
 # pyenv + poetry + tox + pytest 環境構築例
 
