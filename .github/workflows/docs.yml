@@ -19,11 +19,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Read JSON file
+      - name: Read YAML file
         id: read-file
-        uses: ./.github/actions/read-file
+        uses: ./.github/actions/read-yaml
         with:
-          path: .github/workflows/env.json
+          path: .github/settings/env.yml
+          filter: '.env'
 
   # Build the documentation and upload the static HTML files as an artifact.
   build:

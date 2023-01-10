@@ -1,0 +1,25 @@
+inputs:
+  path:
+    description: 'Path to file'
+    required: true
+
+  filter:
+    description: 'JMESPath query to be applied to the input file'
+    required: true
+
+outputs:
+  content:
+    description: 'File content'
+    value: ${{ steps.read-file.outputs.content }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Read file
+      id: read-file
+      shell: bash
+      run: |
+        CONTENT=$(cat ${{ inputs.path }} | yq -o=json '${{ inputs.filter }}')
+        echo 'content<<EOF' >> $GITHUB_OUTPUT
+        echo "${CONTENT}" >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT

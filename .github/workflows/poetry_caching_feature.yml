@@ -14,11 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Read JSON file
+      - name: Read YAML file
         id: read-file
-        uses: ./.github/actions/read-file
+        uses: ./.github/actions/read-yaml
         with:
-          path: .github/workflows/test_matrix.json
+          path: .github/settings/test_matrix.yml
+          filter: '.matrix'
 
   create-cache:
     needs: matrix_prep
