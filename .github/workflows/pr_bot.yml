@@ -1,0 +1,104 @@
+name: pr-bot
+
+on:
+  pull_request_target:
+    types: [opened, closed]
+
+jobs:
+  if-merged:
+    if: github.event.pull_request.merged == true
+    permissions:
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        timeout-minutes: 3
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `@${{ github.event.pull_request.user.login }}, your PR has been merged into the main repository.\nMany thanks for your valuable contribution!`
+            });
+
+  reply-to:
+    if: github.event.action == 'opened' && github.event.pull_request.user.login != 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        timeout-minutes: 3
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Hi, @${{ github.event.pull_request.user.login }} 👋\nThanks for your PR!`
+            });
+
+  apply-label:
+    needs: [reply-to]
+    permissions:
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        timeout-minutes: 3
+        with:
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            if (issue.data.labels.length > 0) {
+              return;
+            }
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['needs triage']
+            });
+
+  assign-assignee:
+    needs: [reply-to]
+    permissions:
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        timeout-minutes: 3
+        with:
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            if (issue.data.assignees.length > 0) {
+              return;
+            }
+            let assignee = `${{ github.event.pull_request.user.login }}`;
+            try {
+              const ret = await github.rest.issues.checkUserCanBeAssigned({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                assignee: assignee
+              });
+            } catch (e) {
+              assignee = `${{ github.repository_owner }}`;
+            }
+            github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: assignee
+            });
