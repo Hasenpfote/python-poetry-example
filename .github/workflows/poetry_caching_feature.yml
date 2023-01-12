@@ -2,9 +2,6 @@ name: Poetry caching feature
 
 on: workflow_dispatch
 
-permissions:
-  contents: read
-
 jobs:
   matrix_prep:
     runs-on: ubuntu-latest

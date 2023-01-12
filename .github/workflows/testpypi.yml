@@ -70,8 +70,4 @@ jobs:
   docs:
     if: true # true if documentation is needed.
     needs: deploy
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
     uses: ./.github/workflows/docs.yml
