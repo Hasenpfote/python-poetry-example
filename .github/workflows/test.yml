@@ -6,10 +6,36 @@ on:
   pull_request:
 
 jobs:
-  matrix_prep:
+  determine-changes:
     if: |
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+
+    runs-on: ubuntu-latest
+    outputs:
+      tox: ${{ steps.filter.outputs.tox }}
+      py: ${{ steps.filter.outputs.py }}
+      has-changes: ${{ fromJson(steps.filter.outputs.changes)[0] != null }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Read YAML file
+        id: read-file
+        uses: ./.github/actions/read-yaml
+        with:
+          path: .github/settings/filters.yml
+          filter: '.test'
+
+      - name: Categorize changed files
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: ${{ steps.read-file.outputs.content }}
+
+  matrix_prep:
+    needs: determine-changes
+    if: needs.determine-changes.outputs.has-changes == 'true'
 
     runs-on: ubuntu-latest
     outputs:
@@ -26,7 +52,7 @@ jobs:
           filter: '.matrix'
 
   build:
-    needs: matrix_prep
+    needs: [determine-changes, matrix_prep]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
@@ -64,19 +90,48 @@ jobs:
           poetry-install-args: --no-interaction --no-root --with dev
 
       - name: Test with pytest
+        id: test-with-pytest
+        if: |
+          needs.determine-changes.outputs.tox == 'true' ||
+          needs.determine-changes.outputs.py == 'true'
         run: |
           ${{ steps.setup-poetry-dependencies.outputs.venv-activate }}
           tox -e py -- -v --color=yes
           deactivate
+          # Create a dummy file.
+          touch "dummy-$(echo .coverage.*)"
 
       - name: Upload coverage reports
-        if: matrix.enable-coverage == 'true'
+        if: steps.test-with-pytest.conclusion != 'skipped'
         uses: actions/upload-artifact@v3
         with:
           name: coverage-reports
           path: .coverage.*
+          retention-days: 1
+
+      - name: Upload dummy files
+        if: steps.test-with-pytest.conclusion != 'skipped'
+        uses: actions/upload-artifact@v3
+        with:
+          name: dummy-files
+          path: dummy-*
+          retention-days: 1
+
+  check:
+    needs: [build]
+    runs-on: ubuntu-latest
+    outputs:
+      needs-upload: ${{ needs.build.outputs.enable-coverage == 'true' &&
+                        steps.download.outputs.download-path != '' }}
+    steps:
+      - name: Download dummy files
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v3
+        with:
+          name: dummy-files
 
   upload-coverage:
-    needs: [build]
-    if: needs.build.outputs.enable-coverage == 'true'
+    needs: [check]
+    if: needs.check.outputs.needs-upload == 'true'
     uses: ./.github/workflows/codecov_upload.yml
