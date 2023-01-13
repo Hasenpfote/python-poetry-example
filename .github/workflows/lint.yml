@@ -10,12 +10,13 @@ jobs:
     if: |
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
-
     runs-on: ubuntu-latest
     outputs:
-      tox: ${{ steps.filter.outputs.tox }}
-      py: ${{ steps.filter.outputs.py }}
       has-changes: ${{ fromJson(steps.filter.outputs.changes)[0] != null }}
+      py: ${{ steps.filter.outputs.py }}
+      py-lint: ${{ steps.filter.outputs.py-lint }}
+      md: ${{ steps.filter.outputs.md }}
+      md-lint: ${{ steps.filter.outputs.md-lint }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -33,60 +34,23 @@ jobs:
         with:
           filters: ${{ steps.read-file.outputs.content }}
 
-  env_prep:
+  py-lint:
     needs: determine-changes
-    if: needs.determine-changes.outputs.has-changes == 'true'
+    if: needs.determine-changes.outputs.py == 'true'
+    uses: ./.github/workflows/py_lint.yml
+    with:
+      enable-lint: ${{ fromJson(needs.determine-changes.outputs.py-lint) }}
 
-    runs-on: ubuntu-latest
-    outputs:
-      env: ${{ steps.read-file.outputs.content }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Read YAML file
-        id: read-file
-        uses: ./.github/actions/read-yaml
-        with:
-          path: .github/settings/env.yml
-          filter: '.env'
-
-  build:
-    needs: [determine-changes, env_prep]
-    env: ${{ fromJson(needs.env_prep.outputs.env) }}
-
+  md-lint:
+    needs: determine-changes
+    if: needs.determine-changes.outputs.md == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Python ${{ env.python-version }}
-        id: setup-python
-        uses: actions/setup-python@v4
+      - name: Lint all markdown files
+        if: needs.determine-changes.outputs.md-lint == 'true'
+        uses: DavidAnson/markdownlint-cli2-action@v9
         with:
-          python-version: ${{ env.python-version }}
-
-      - name: Set up Poetry ${{ env.poetry-version }}
-        id: setup-poetry
-        uses: ./.github/actions/setup-poetry
-        with:
-          cache-path: ${{ env.poetry-cache-paths }}
-          cache-key: ${{ format(env.poetry-cache-key-fmt, env.poetry-version, runner.os, steps.setup-python.outputs.python-version) }}
-          poetry-version: ${{ env.poetry-version }}
-          poetry-home: ${{ env.poetry-home }}
-          poetry-path: ${{ env.poetry-path }}
-
-      - name: Set up Poetry dependencies
-        id: setup-poetry-dependencies
-        uses: ./.github/actions/setup-poetry-dependencies
-        with:
-          cache-key: ${{ format(env.venv-cache-key-fmt, runner.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
-          python-version: ${{ steps.setup-python.outputs.python-version }}
-          poetry-install-args: --no-interaction --no-root --with dev
-
-      - name: Lint with tox
-        if: |
-          needs.determine-changes.outputs.tox == 'true' ||
-          needs.determine-changes.outputs.py == 'true'
-        run: |
-          poetry run tox -e black,isort,flake8,mypy -p all -q
+          globs: '**/*.md'
