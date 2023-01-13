@@ -181,7 +181,7 @@ python-poetry-example
 - [Choosing a test layout / import rules](https://docs.pytest.org/en/latest/explanation/goodpractices.html#tests-outside-application-code)
 - [Packaging a python library](https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure)
 
-####  2. 使用する python を指定
+#### 2. 使用する python を指定
 
 プロジェクトルートに移動
 
@@ -210,8 +210,8 @@ Python 3.8.10
 
 動作確認を行った環境では,
 
-- ` pyenv local 3.8.10 3.7.9` なら `python -V` で`3.8.10`
-- ` pyenv local 3.7.9 3.8.10` なら `python -V` で `3.7.9`
+- `pyenv local 3.8.10 3.7.9` なら `python -V` で`3.8.10`
+- `pyenv local 3.7.9 3.8.10` なら `python -V` で `3.7.9`
 
 **最初に指定をしたバージョンが有効になる.**
 
@@ -274,7 +274,7 @@ python-poetry-example
    └─ __init__.py
 ```
 
-####  5. コードを配置
+#### 5. コードを配置
 
 適当な機能をまとめた `utils.py` と, そのテストコードを配置する.
 
@@ -980,8 +980,6 @@ flowchart LR
 
 > Poetry's typical `version` setting is still required in `[tool.poetry]`, but you are encouraged to use `version = "0.0.0"` as a standard placeholder.
 
-
-
 `./pyproject.toml`
 
 ```toml
@@ -1451,6 +1449,7 @@ jobs:
   例えば `v*` などとしておく.  
 
 #### キャッシュ
+
 `Poetry` や依存関係のキャッシュを行うことでアクションの実行時間を低減する.  
 分量が多いため [issue](https://github.com/Hasenpfote/python-poetry-example/issues/2) で扱う.  
 
