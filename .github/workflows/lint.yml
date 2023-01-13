@@ -21,18 +21,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Read YAML file
-        id: read-file
-        uses: ./.github/actions/read-yaml
-        with:
-          path: .github/settings/filters.yml
-          filter: '.lint'
-
       - name: Categorize changed files
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          filters: ${{ steps.read-file.outputs.content }}
+          filters: .github/settings/lint_filters.yml
 
   py-lint:
     needs: determine-changes

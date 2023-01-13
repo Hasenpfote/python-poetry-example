@@ -1,8 +1,13 @@
 name: Upload coverage reports to Codecov
 
 on:
-  workflow_dispatch:
   workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Artifact name'
+        default: 'coverage-reports'
+        required: false
+        type: string
 
 jobs:
   env_prep:
@@ -56,7 +61,7 @@ jobs:
       - name: Download coverage reports
         uses: actions/download-artifact@v3
         with:
-          name: coverage-reports
+          name: ${{ inputs.artifact-name }}
 
       - name: Combine coverage reports
         run: |

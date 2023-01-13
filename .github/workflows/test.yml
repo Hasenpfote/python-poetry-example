@@ -10,128 +10,29 @@ jobs:
     if: |
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
-
     runs-on: ubuntu-latest
     outputs:
-      tox: ${{ steps.filter.outputs.tox }}
-      py: ${{ steps.filter.outputs.py }}
       has-changes: ${{ fromJson(steps.filter.outputs.changes)[0] != null }}
+      py: ${{ steps.filter.outputs.py }}
+      py-test: ${{ steps.filter.outputs.py-test }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Read YAML file
-        id: read-file
-        uses: ./.github/actions/read-yaml
-        with:
-          path: .github/settings/filters.yml
-          filter: '.test'
 
       - name: Categorize changed files
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          filters: ${{ steps.read-file.outputs.content }}
+          filters: .github/settings/test_filters.yml
 
-  matrix_prep:
+  py-test:
     needs: determine-changes
-    if: needs.determine-changes.outputs.has-changes == 'true'
+    if: needs.determine-changes.outputs.py == 'true'
+    uses: ./.github/workflows/py_test.yml
+    with:
+      enable-test: ${{ fromJson(needs.determine-changes.outputs.py-test) }}
 
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.read-file.outputs.content }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Read YAML file
-        id: read-file
-        uses: ./.github/actions/read-yaml
-        with:
-          path: .github/settings/test_matrix.yml
-          filter: '.matrix'
-
-  build:
-    needs: [determine-changes, matrix_prep]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
-
-    runs-on: ${{ matrix.os }}
-    name: ${{ format('build ({0}, {1})', matrix.os, matrix.python-version) }}
-    outputs:
-      enable-coverage: ${{ matrix.enable-coverage }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up Python ${{ matrix.python-version }}
-        id: setup-python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        id: setup-poetry
-        uses: ./.github/actions/setup-poetry
-        with:
-          cache-path: ${{ matrix.poetry-cache-paths }}
-          cache-key: ${{ format(matrix.poetry-cache-key-fmt, matrix.poetry-version, matrix.os, steps.setup-python.outputs.python-version) }}
-          poetry-version: ${{ matrix.poetry-version }}
-          poetry-home: ${{ matrix.poetry-home }}
-          poetry-path: ${{ matrix.poetry-path }}
-
-      - name: Set up Poetry dependencies
-        id: setup-poetry-dependencies
-        uses: ./.github/actions/setup-poetry-dependencies
-        with:
-          cache-key: ${{ format(matrix.venv-cache-key-fmt, matrix.os, steps.setup-python.outputs.python-version, hashFiles('**/poetry.lock')) }}
-          python-version: ${{ steps.setup-python.outputs.python-version }}
-          poetry-install-args: --no-interaction --no-root --with dev
-
-      - name: Test with pytest
-        id: test-with-pytest
-        if: |
-          needs.determine-changes.outputs.tox == 'true' ||
-          needs.determine-changes.outputs.py == 'true'
-        run: |
-          ${{ steps.setup-poetry-dependencies.outputs.venv-activate }}
-          tox -e py -- -v --color=yes
-          deactivate
-          # Create a dummy file.
-          touch "dummy-$(echo .coverage.*)"
-
-      - name: Upload coverage reports
-        if: steps.test-with-pytest.conclusion != 'skipped'
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-reports
-          path: .coverage.*
-          retention-days: 1
-
-      - name: Upload dummy files
-        if: steps.test-with-pytest.conclusion != 'skipped'
-        uses: actions/upload-artifact@v3
-        with:
-          name: dummy-files
-          path: dummy-*
-          retention-days: 1
-
-  check:
-    needs: [build]
-    runs-on: ubuntu-latest
-    outputs:
-      needs-upload: ${{ needs.build.outputs.enable-coverage == 'true' &&
-                        steps.download.outputs.download-path != '' }}
-    steps:
-      - name: Download dummy files
-        id: download
-        continue-on-error: true
-        uses: actions/download-artifact@v3
-        with:
-          name: dummy-files
-
-  upload-coverage:
-    needs: [check]
-    if: needs.check.outputs.needs-upload == 'true'
+  codecov-upload:
+    needs: py-test
+    if: needs.py-test.outputs.has-coverage-reports == 'true'
     uses: ./.github/workflows/codecov_upload.yml
