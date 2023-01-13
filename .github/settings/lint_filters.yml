@@ -1,0 +1,34 @@
+# This is used by the action below.
+# https://github.com/dorny/paths-filter
+
+shared: &shared
+  - '.github/actions/read-yaml/action.yml'
+  - '.github/settings/lint_filters.yml'
+  - '.github/workflows/lint.yml'
+
+# python scripts
+py-shared: &py-shared
+  - '.github/actions/setup-poetry/action.yml'
+  - '.github/actions/setup-poetry-dependencies/action.yml'
+  - '.github/settings/env.yml'
+  - '.github/workflows/py_lint.yml'
+  - 'poetry.lock'
+  - 'pyproject.toml'
+
+py-lint: &py-lint
+  - 'tox.ini'
+  - added|modified: '**/*.py'
+
+py:
+  - *shared
+  - *py-shared
+  - *py-lint
+
+# markdown files
+md-lint: &md-lint
+  - '.markdownlint.yml'
+  - added|modified: '**/*.md'
+
+md:
+  - *shared
+  - *md-lint

@@ -1,0 +1,26 @@
+# This is used by the action below.
+# https://github.com/dorny/paths-filter
+
+shared: &shared
+  - '.github/actions/read-yaml/action.yml'
+  - '.github/settings/test_filters.yml'
+  - '.github/workflows/test.yml'
+
+# python scripts
+py-shared: &py-shared
+  - '.github/actions/setup-poetry/action.yml'
+  - '.github/actions/setup-poetry-dependencies/action.yml'
+  - '.github/settings/test_matrix.yml'
+  - '.github/workflows/codecov_upload.yml'
+  - '.github/workflows/py_test.yml'
+  - 'poetry.lock'
+  - 'pyproject.toml'
+
+py-test: &py-test
+  - 'tox.ini'
+  - added|modified: '**/*.py'
+
+py:
+  - *shared
+  - *py-shared
+  - *py-test
