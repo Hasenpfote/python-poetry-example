@@ -1,4 +1,4 @@
-name: Issue-bot
+name: issue-bot
 
 on:
   issues:
