@@ -1,3 +1,5 @@
+name: py-lint
+
 on:
   workflow_call:
     inputs:
