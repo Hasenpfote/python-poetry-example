@@ -1,0 +1,132 @@
+name: '🧰 Maint: Delete workflow runs'
+
+on:
+  workflow_dispatch:
+    inputs:
+      validity-days:
+        description: 'Validity days'
+        default: '7'
+        type: choice
+        options: ['0', '1', '2', '3', '4', '5', '6', '7']
+
+      name-pattern:
+        description: 'Regular expression to match workflow name'
+        required: false
+        default: ''
+        type: string
+
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  main:
+    permissions:
+      actions: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete workflow runs
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.info('validity-days: ${{ inputs.validity-days }}');
+            core.info('name-pattern: ${{ inputs.name-pattern }}');
+            core.info('dry-run: ${{ inputs.dry-run }}');
+
+            let deleteWorkflowRun;
+            if (${{ inputs.dry-run }} == true) {
+              core.warning('Running in dry-run mode.');
+              deleteWorkflowRun = (owner, repo, run_id) => undefined;
+            } else {
+              deleteWorkflowRun = github.rest.actions.deleteWorkflowRun;
+            }
+
+            const validity_days = parseInt('${{ inputs.validity-days }}', 10);
+            const re = new RegExp('${{ inputs.name-pattern }}');
+            const current_date = new Date();
+            const per_page = 30;
+
+            async function numWorkflowRuns(workflow_id) {
+              let total_count = 0
+              try {
+                const wf_runs = await github.rest.actions.listWorkflowRuns({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: workflow_id,
+                  per_page: 1,
+                });
+                total_count = wf_runs.data.total_count;
+              } catch (e) {
+              }
+              return total_count;
+            }
+
+            async function validWorkflowRunIds(workflow_id, num_wf_runs) {
+              const max_pages = Math.ceil(num_wf_runs / per_page);
+              let ids = []
+              try {
+                let num_pages = 1;
+                do {
+                  const wf_runs = await github.rest.actions.listWorkflowRuns({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    workflow_id: workflow_id,
+                    per_page: per_page,
+                    page: num_pages,
+                  });
+                  for (const wf_run of wf_runs.data.workflow_runs) {
+                    if (wf_run.status != 'completed') {
+                      continue;
+                    }
+
+                    const expiry_date = new Date(wf_run.updated_at);
+                    expiry_date.setDate(expiry_date.getDate() + validity_days);
+                    const has_expired = current_date.getTime() > expiry_date.getTime();
+                    if (!has_expired) {
+                      continue;
+                    }
+
+                    ids.push(wf_run.id);
+                  }
+                } while(num_pages++ < max_pages);
+              } catch (e) {
+              }
+              return ids;
+            }
+
+            const wfs = await github.rest.actions.listRepoWorkflows({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            for (const wf of wfs.data.workflows) {
+              const basename = wf.path.split('/').reverse()[0];
+              const has_matched = re.test(basename);
+              if (!has_matched) {
+                continue;
+              }
+
+              let num_deleted_wf_runs = 0;
+              const num_wf_runs = await numWorkflowRuns(wf.id);
+              if (!num_wf_runs) {
+                core.info(`[${basename}] This workflow has no runs yet.`);
+                continue;
+              }
+
+              const wf_run_ids = await validWorkflowRunIds(wf.id, num_wf_runs);
+              if (!wf_run_ids.length) {
+                core.info(`[${basename}] Nothing matches the given conditions.`);
+                continue;
+              }
+
+              for (const wf_run_id of wf_run_ids) {
+                deleteWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: wf_run_id,
+                });
+                num_deleted_wf_runs++;
+              }
+              core.notice(`[${basename}] ${num_deleted_wf_runs}/${num_wf_runs} workflow runs have been deleted.`);
+            }
