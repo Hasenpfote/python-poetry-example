@@ -1,4 +1,4 @@
-name: Upload coverage reports to Codecov
+name: '📄 Upload coverage reports to Codecov'
 
 on:
   workflow_call:

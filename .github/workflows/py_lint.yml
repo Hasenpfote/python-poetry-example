@@ -1,4 +1,4 @@
-name: py-lint
+name: '🔬 Lint: py'
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: Publish the package to TestPyPI
+name: '📦 Publish the package to TestPyPI'
 
 on:
   workflow_dispatch:

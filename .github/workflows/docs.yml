@@ -1,5 +1,5 @@
 # Workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: '📚 Publish docs via GitHub Pages'
 
 # build the documentation whenever there are new commits on main
 on:

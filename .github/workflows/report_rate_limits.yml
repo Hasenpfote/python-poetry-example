@@ -1,0 +1,63 @@
+name: '🧰 Maint: Report rate limits'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump rate limit
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const indicator = (function () {
+              const max_steps = 5;
+              const threshold_to_emoji = new Map([
+                [25, '🟥'], [50, '🟨'], [100, '🟩'],
+              ]);
+              const scale = max_steps / 100;
+
+              return function (value) {
+                const arr = new Array(max_steps).fill('🟫');
+                if (value <= 0) return arr.join('');
+
+                let emoji;
+                for (let entry of threshold_to_emoji) {
+                  if (value <= entry[0]) {
+                      emoji = entry[1];
+                      break;
+                  }
+                }
+                return arr.fill(emoji, 0, Math.ceil(value * scale)).join('');
+              }
+            })();
+
+            const current_date = new Date();
+            const rate_limit = await github.request('GET /rate_limit', {});
+
+            const table = [];
+            const header = Object.keys(rate_limit.data.rate).map(v => ({data: v, header: true}));
+            header.push({data: '', header: true});
+            header.push({data: 'Time until reset<br>in minutes', header: true});
+            header.push({data: '', header: true});
+            header.unshift({data: 'resource', header: true});
+            table.push(header);
+
+            for (let [key, value] of Object.entries(rate_limit.data.resources).sort()) {
+              const resource = Object.values(value).map(v => v.toString());
+              const reset = new Date(value.reset * 1000);
+              const time_left = Math.floor((reset - current_date) / 60000);
+              resource.push(reset.toISOString());
+              resource.push(value.used > 0 ? time_left.toString() : '');
+              resource.push(indicator((value.remaining / value.limit) * 100));
+              resource.unshift(key);
+              table.push(resource);
+            }
+
+            await core.summary
+              .addHeading('Current rate limit status')
+              .addTable(table)
+              .addEOL()
+              .addRaw('Created at ' + new Date().toISOString())
+              .write()

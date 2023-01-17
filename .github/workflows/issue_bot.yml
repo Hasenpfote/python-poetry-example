@@ -1,4 +1,4 @@
-name: issue-bot
+name: '🤖 Bot: Issues'
 
 on:
   issues:

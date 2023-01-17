@@ -1,0 +1,119 @@
+name: '🧰 Maint: Delete caches'
+
+on:
+  workflow_dispatch:
+    inputs:
+      validity-days:
+        description: 'Validity days'
+        default: '7'
+        type: choice
+        options: ['0', '1', '2', '3', '4', '5', '6', '7']
+
+      key-pattern:
+        description: 'Regular expression to match cache key'
+        required: false
+        default: ''
+        type: string
+
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  main:
+    permissions:
+      actions: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete caches
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.info('validity-days: ${{ inputs.validity-days }}');
+            core.info('key-pattern: ${{ inputs.key-pattern }}');
+            core.info('dry-run: ${{ inputs.dry-run }}');
+
+            let deleteActionsCacheById;
+            if (${{ inputs.dry-run }} == true) {
+              core.warning('Running in dry-run mode.');
+              deleteActionsCacheById = (owner, repo, cache_id) => undefined;
+            } else {
+              deleteActionsCacheById = github.rest.actions.deleteActionsCacheById;
+            }
+
+            const validity_days = parseInt('${{ inputs.validity-days }}', 10);
+            const re = new RegExp('${{ inputs.key-pattern }}');
+            const current_date = new Date();
+            const per_page = 30;
+
+            async function numCaches() {
+              let total_count = 0
+              try {
+                const caches = await github.rest.actions.getActionsCacheList({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  per_page: 1,
+                });
+                total_count = caches.data.total_count;
+              } catch (e) {
+              }
+              return total_count;
+            }
+
+            async function validCacheIds(num_caches) {
+              const max_pages = Math.ceil(num_caches / per_page);
+              let ids = []
+              try {
+                let num_pages = 1;
+                do {
+                  const caches = await github.rest.actions.getActionsCacheList({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    per_page: per_page,
+                    page: num_pages,
+                  });
+                  for (const cache of caches.data.actions_caches) {
+                    const has_matched = re.test(cache.key);
+                    if (!has_matched) {
+                      continue;
+                    }
+
+                    const expiry_date = new Date(cache.last_accessed_at);
+                    expiry_date.setDate(expiry_date.getDate() + validity_days);
+                    const has_expired = current_date.getTime() > expiry_date.getTime();
+                    if (!has_expired) {
+                      continue;
+                    }
+
+                    ids.push(cache.id);
+                  }
+                } while(num_pages++ < max_pages);
+              } catch (e) {
+              }
+              return ids;
+            }
+
+            let num_deleted_caches = 0;
+            const num_caches = await numCaches();
+            if (!num_caches) {
+              core.info('No caches.');
+              return;
+            }
+
+            const cache_ids = await validCacheIds(num_caches);
+            if (!cache_ids.length) {
+              core.info('Nothing matches the given conditions.');
+              return;
+            }
+
+            for (const cache_id of cache_ids) {
+              deleteActionsCacheById({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                cache_id: cache_id,
+              });
+              num_deleted_caches++;
+            }
+            core.notice(`${num_deleted_caches}/${num_caches} caches have been deleted.`);
