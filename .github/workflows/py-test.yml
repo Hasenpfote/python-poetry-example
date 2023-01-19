@@ -21,7 +21,7 @@ on:
         value: ${{ jobs.check.outputs.has-coverage-reports }}
 
 jobs:
-  matrix_prep:
+  config-prep:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.read-file.outputs.content }}
@@ -33,14 +33,14 @@ jobs:
         id: read-file
         uses: ./.github/actions/read-yaml
         with:
-          path: .github/settings/test_matrix.yml
-          filter: '.matrix'
+          path: .github/settings/test-config.yml
+          filter: '.default.matrix'
 
   build:
-    needs: matrix_prep
+    needs: config-prep
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.config-prep.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
     name: ${{ format('build ({0}, {1})', matrix.os, matrix.python-version) }}

@@ -1,12 +1,20 @@
 name: '📦 Publish the package to TestPyPI'
 
 on:
-  workflow_dispatch:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+
+    outputs:
+      page-url:
+        description: 'URL to the package published on TestPyPI'
+        value: ${{ jobs.make-url.outputs.page-url }}
 
 jobs:
-  env_prep:
+  config-prep:
     runs-on: ubuntu-latest
     outputs:
       env: ${{ steps.read-file.outputs.content }}
@@ -18,14 +26,16 @@ jobs:
         id: read-file
         uses: ./.github/actions/read-yaml
         with:
-          path: .github/settings/env.yml
-          filter: '.env'
+          path: .github/settings/config.yml
+          filter: '.default.env'
 
   deploy:
-    needs: env_prep
-    env: ${{ fromJson(needs.env_prep.outputs.env) }}
+    needs: config-prep
+    env: ${{ fromJson(needs.config-prep.outputs.env) }}
 
     runs-on: ubuntu-latest
+    outputs:
+      api-end-point: ${{ steps.configure-poetry.outputs.api-end-point }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -49,11 +59,14 @@ jobs:
           poetry-path: ${{ env.poetry-path }}
 
       - name: Configure Poetry
+        id: configure-poetry
         env:
           TESTPYPI_API_TOKEN: ${{ secrets.TESTPYPI_API_TOKEN }}
+        shell: bash
         run: |
           poetry config repositories.test-pypi https://test.pypi.org/legacy/
           poetry config pypi-token.test-pypi $TESTPYPI_API_TOKEN
+          echo "api-end-point=$(poetry config repositories.test-pypi | sed 's/\x27/"/g' | jq '.url' | sed 's/"//g')" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
         run: |
@@ -63,11 +76,36 @@ jobs:
         run: |
           poetry build
 
+      - name: Publish --dry-run
+        if: inputs.dry-run == true
+        run: |
+          poetry publish -r test-pypi --dry-run
+
       - name: Publish
+        if: inputs.dry-run != true
         run: |
           poetry publish -r test-pypi
 
-  docs:
-    if: true # true if documentation is needed.
+  make-url:
     needs: deploy
-    uses: ./.github/workflows/docs.yml
+    runs-on: ubuntu-latest
+    outputs:
+      page-url: ${{ steps.make-url.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Read TOML file
+        uses: SebRollen/toml-action@v1.0.2
+        id: read-toml
+        with:
+          file: pyproject.toml
+          field: 'tool.poetry.name'
+
+      - name: Make URL
+        id: make-url
+        shell: bash
+        run: |
+          api_end_point='${{ needs.deploy.outputs.api-end-point }}'
+          protocol_domain="$(echo "${api_end_point}" | grep -Eo '^http[s]?://[^/]+')/"
+          echo "url=${protocol_domain}project/${{ steps.read-toml.outputs.value }}/" >> $GITHUB_OUTPUT

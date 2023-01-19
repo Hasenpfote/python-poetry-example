@@ -10,7 +10,7 @@ on:
         type: boolean
 
 jobs:
-  env_prep:
+  config-prep:
     runs-on: ubuntu-latest
     outputs:
       env: ${{ steps.read-file.outputs.content }}
@@ -22,12 +22,12 @@ jobs:
         id: read-file
         uses: ./.github/actions/read-yaml
         with:
-          path: .github/settings/env.yml
-          filter: '.env'
+          path: .github/settings/config.yml
+          filter: '.default.env'
 
   build:
-    needs: env_prep
-    env: ${{ fromJson(needs.env_prep.outputs.env) }}
+    needs: config-prep
+    env: ${{ fromJson(needs.config-prep.outputs.env) }}
 
     runs-on: ubuntu-latest
     steps:

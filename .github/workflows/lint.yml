@@ -25,12 +25,12 @@ jobs:
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          filters: .github/settings/lint_filters.yml
+          filters: .github/settings/lint-filters.yml
 
   py-lint:
     needs: determine-changes
     if: needs.determine-changes.outputs.py == 'true'
-    uses: ./.github/workflows/py_lint.yml
+    uses: ./.github/workflows/py-lint.yml
     with:
       enable-lint: ${{ fromJson(needs.determine-changes.outputs.py-lint) }}
 

@@ -4,10 +4,26 @@ name: '📚 Publish docs via GitHub Pages'
 # build the documentation whenever there are new commits on main
 on:
   workflow_dispatch:
+    inputs:
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+
   workflow_call:
+    inputs:
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+
+    outputs:
+      page-url:
+        description: 'URL to the docs published on GitHub Pages'
+        value: ${{ jobs.deploy.outputs.page-url }}
 
 jobs:
-  env_prep:
+  config-prep:
     runs-on: ubuntu-latest
     outputs:
       env: ${{ steps.read-file.outputs.content }}
@@ -19,13 +35,13 @@ jobs:
         id: read-file
         uses: ./.github/actions/read-yaml
         with:
-          path: .github/settings/env.yml
-          filter: '.env'
+          path: .github/settings/config.yml
+          filter: '.default.env'
 
   # Build the documentation and upload the static HTML files as an artifact.
   build:
-    needs: env_prep
-    env: ${{ fromJson(needs.env_prep.outputs.env) }}
+    needs: config-prep
+    env: ${{ fromJson(needs.config-prep.outputs.env) }}
 
     runs-on: ubuntu-latest
     steps:
@@ -65,13 +81,17 @@ jobs:
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    if: ${{ !inputs.dry-run }}
     permissions:
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    outputs:
+      page-url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v1
