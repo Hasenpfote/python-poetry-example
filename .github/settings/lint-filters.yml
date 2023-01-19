@@ -3,15 +3,15 @@
 
 shared: &shared
   - '.github/actions/read-yaml/action.yml'
-  - '.github/settings/lint_filters.yml'
+  - '.github/settings/lint-filters.yml'
   - '.github/workflows/lint.yml'
 
 # python scripts
 py-shared: &py-shared
   - '.github/actions/setup-poetry/action.yml'
   - '.github/actions/setup-poetry-dependencies/action.yml'
-  - '.github/settings/env.yml'
-  - '.github/workflows/py_lint.yml'
+  - '.github/settings/config.yml'
+  - '.github/workflows/py-lint.yml'
   - 'poetry.lock'
   - 'pyproject.toml'
 

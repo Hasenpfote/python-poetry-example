@@ -23,16 +23,16 @@ jobs:
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          filters: .github/settings/test_filters.yml
+          filters: .github/settings/test-filters.yml
 
   py-test:
     needs: determine-changes
     if: needs.determine-changes.outputs.py == 'true'
-    uses: ./.github/workflows/py_test.yml
+    uses: ./.github/workflows/py-test.yml
     with:
       enable-test: ${{ fromJson(needs.determine-changes.outputs.py-test) }}
 
   codecov-upload:
     needs: py-test
     if: needs.py-test.outputs.has-coverage-reports == 'true'
-    uses: ./.github/workflows/codecov_upload.yml
+    uses: ./.github/workflows/codecov-upload.yml

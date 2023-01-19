@@ -3,16 +3,16 @@
 
 shared: &shared
   - '.github/actions/read-yaml/action.yml'
-  - '.github/settings/test_filters.yml'
+  - '.github/settings/test-filters.yml'
   - '.github/workflows/test.yml'
 
 # python scripts
 py-shared: &py-shared
   - '.github/actions/setup-poetry/action.yml'
   - '.github/actions/setup-poetry-dependencies/action.yml'
-  - '.github/settings/test_matrix.yml'
-  - '.github/workflows/codecov_upload.yml'
-  - '.github/workflows/py_test.yml'
+  - '.github/settings/test-config.yml'
+  - '.github/workflows/codecov-upload.yml'
+  - '.github/workflows/py-test.yml'
   - 'poetry.lock'
   - 'pyproject.toml'
 
