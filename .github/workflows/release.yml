@@ -1,0 +1,73 @@
+name: '🎁 Release'
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+
+  release:
+    types: [published]
+
+jobs:
+  config-prep:
+    runs-on: ubuntu-latest
+    outputs:
+      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+      enable-docs: ${{ steps.read-file.outputs.content }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Read YAML file
+        id: read-file
+        uses: ./.github/actions/read-yaml
+        with:
+          path: .github/settings/release-config.yml
+          filter: '.default.enable-docs'
+
+  publish-package:
+    needs: config-prep
+    uses: ./.github/workflows/testpypi.yml
+    with:
+      dry-run: ${{ fromJson(needs.config-prep.outputs.dry-run) }}
+    secrets: inherit
+
+  publish-docs:
+    needs: [config-prep, publish-package]
+    if: needs.config-prep.outputs.enable-docs == 'true'
+    uses: ./.github/workflows/docs.yml
+    with:
+      dry-run: ${{ fromJson(needs.config-prep.outputs.dry-run) }}
+
+  report:
+    needs: [publish-package, publish-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        shell: bash
+        run: |
+          echo ${{ needs.publish-package.result }}
+          echo ${{ needs.publish-docs.result }}
+
+      - name: Generate a summary
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const name_to_url = new Map([
+              ['TestPyPI', '${{ needs.publish-package.outputs.page-url }}'],
+            ]);
+            if ('${{ needs.publish-docs.outputs.page-url }}' != '') {
+              name_to_url.set('GitHub Pages', '${{ needs.publish-docs.outputs.page-url }}');
+            }
+
+            const list = [...name_to_url].map(([name, url]) =>
+              `<a href="${url}">${name}</a>`
+            );
+
+            await core.summary
+              .addHeading('Links to published content')
+              .addList(list)
+              .write()
