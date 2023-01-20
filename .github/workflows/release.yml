@@ -46,12 +46,6 @@ jobs:
     needs: [publish-package, publish-docs]
     runs-on: ubuntu-latest
     steps:
-      - name: Debug
-        shell: bash
-        run: |
-          echo ${{ needs.publish-package.result }}
-          echo ${{ needs.publish-docs.result }}
-
       - name: Generate a summary
         uses: actions/github-script@v6
         with:
