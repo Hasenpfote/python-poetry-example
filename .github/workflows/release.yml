@@ -3,6 +3,11 @@ name: '🎁 Release'
 on:
   workflow_dispatch:
     inputs:
+      job-id:
+        default: 'all'
+        type: choice
+        options: ['all', 'publish-package', 'publish-docs']
+
       dry-run:
         required: false
         default: true
@@ -15,9 +20,20 @@ jobs:
   config-prep:
     runs-on: ubuntu-latest
     outputs:
+      publish-package: ${{ steps.debug.outputs.publish-package }}
+      publish-docs: ${{ steps.debug.outputs.publish-docs }}
       dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
       enable-docs: ${{ steps.read-file.outputs.content }}
     steps:
+      - name: Debug
+        id: debug
+        shell: bash
+        run: |
+          value=${{ github.event_name != 'workflow_dispatch' || contains(fromJson('["all", "publish-package"]'), inputs.job-id) }}
+          echo "publish-package=${value}" >> $GITHUB_OUTPUT
+          value=${{ github.event_name != 'workflow_dispatch' || contains(fromJson('["all", "publish-docs"]'), inputs.job-id) }}
+          echo "publish-docs=${value}" >> $GITHUB_OUTPUT
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -30,19 +46,22 @@ jobs:
 
   publish-package:
     needs: config-prep
+    if: needs.config-prep.outputs.publish-package == 'true'
     uses: ./.github/workflows/testpypi.yml
     with:
       dry-run: ${{ fromJson(needs.config-prep.outputs.dry-run) }}
     secrets: inherit
 
   publish-docs:
-    needs: [config-prep, publish-package]
-    if: needs.config-prep.outputs.enable-docs == 'true'
+    needs: config-prep
+    if: needs.config-prep.outputs.publish-docs == 'true' &&
+        needs.config-prep.outputs.enable-docs == 'true'
     uses: ./.github/workflows/docs.yml
     with:
       dry-run: ${{ fromJson(needs.config-prep.outputs.dry-run) }}
 
   report:
+    if: ${{ ! failure() }}
     needs: [publish-package, publish-docs]
     runs-on: ubuntu-latest
     steps:
@@ -50,9 +69,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const name_to_url = new Map([
-              ['TestPyPI', '${{ needs.publish-package.outputs.page-url }}'],
-            ]);
+            const name_to_url = new Map();
+            if ('${{ needs.publish-package.outputs.page-url }}' != '') {
+              name_to_url.set('TestPyPI', '${{ needs.publish-package.outputs.page-url }}');
+            }
             if ('${{ needs.publish-docs.outputs.page-url }}' != '') {
               name_to_url.set('GitHub Pages', '${{ needs.publish-docs.outputs.page-url }}');
             }
@@ -60,8 +80,9 @@ jobs:
             const list = [...name_to_url].map(([name, url]) =>
               `<a href="${url}">${name}</a>`
             );
+            const title = list.length ? 'Links to published content' : 'Nothing has been published';
 
             await core.summary
-              .addHeading('Links to published content')
+              .addHeading(title)
               .addList(list)
               .write()
