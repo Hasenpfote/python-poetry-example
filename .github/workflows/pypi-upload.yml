@@ -1,16 +1,25 @@
-name: '📦 Publish the package to TestPyPI'
+name: '📦 Publish the package to PyPI'
 
 on:
   workflow_call:
     inputs:
+      use-testpypi:
+        required: false
+        default: true
+        type: boolean
+
       dry-run:
         required: false
         default: true
         type: boolean
 
+    secrets:
+      pypi-api-token:
+        required: true
+
     outputs:
       page-url:
-        description: 'URL to the package published on TestPyPI'
+        description: 'URL to the package published on PyPI'
         value: ${{ jobs.make-url.outputs.page-url }}
 
 jobs:
@@ -58,33 +67,45 @@ jobs:
           poetry-home: ${{ env.poetry-home }}
           poetry-path: ${{ env.poetry-path }}
 
-      - name: Configure Poetry
+      - name: Configure Poetry for TestPyPI
+        if: inputs.use-testpypi
         id: configure-poetry
         env:
-          TESTPYPI_API_TOKEN: ${{ secrets.TESTPYPI_API_TOKEN }}
+          PYPI_API_TOKEN: ${{ secrets.pypi-api-token }}
         shell: bash
         run: |
           poetry config repositories.test-pypi https://test.pypi.org/legacy/
-          poetry config pypi-token.test-pypi $TESTPYPI_API_TOKEN
+          poetry config pypi-token.test-pypi $PYPI_API_TOKEN
           echo "api-end-point=$(poetry config repositories.test-pypi | sed 's/\x27/"/g' | jq '.url' | sed 's/"//g')" >> $GITHUB_OUTPUT
+
+      - name: Configure Poetry for PyPI
+        if: ${{ ! inputs.use-testpypi }}
+        env:
+          PYPI_API_TOKEN: ${{ secrets.pypi-api-token }}
+        shell: bash
+        run: |
+          poetry config pypi-token.pypi $PYPI_API_TOKEN
 
       - name: Install dependencies
         run: |
           poetry self add 'poetry-dynamic-versioning[plugin]'
 
-      - name: Build
+      - name: Make options
+        id: make-options
+        shell: bash
         run: |
-          poetry build
-
-      - name: Publish --dry-run
-        if: inputs.dry-run == true
-        run: |
-          poetry publish -r test-pypi --dry-run
+          options='--build'
+          if [[ ${{ inputs.use-testpypi }} == true ]]; then
+            options="${options} -r test-pypi"
+          fi
+          if [[ ${{ inputs.dry-run }} == true ]]; then
+            options="${options} --dry-run"
+          fi
+          echo "options=$(echo "${options}" | sed 's/^ *\| *$//g')" >> $GITHUB_OUTPUT
 
       - name: Publish
-        if: inputs.dry-run != true
         run: |
-          poetry publish -r test-pypi
+          poetry publish ${{ steps.make-options.outputs.options }}
 
   make-url:
     needs: deploy
@@ -106,6 +127,10 @@ jobs:
         id: make-url
         shell: bash
         run: |
-          api_end_point='${{ needs.deploy.outputs.api-end-point }}'
-          protocol_domain="$(echo "${api_end_point}" | grep -Eo '^http[s]?://[^/]+')/"
-          echo "url=${protocol_domain}project/${{ steps.read-toml.outputs.value }}/" >> $GITHUB_OUTPUT
+          if [[ ${{ inputs.use-testpypi }} == true ]]; then
+            api_end_point='${{ needs.deploy.outputs.api-end-point }}'
+            protocol_domain="$(echo "${api_end_point}" | grep -Eo '^http[s]?://[^/]+')/"
+            echo "url=${protocol_domain}project/${{ steps.read-toml.outputs.value }}/" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://pypi.org/project/${{ steps.read-toml.outputs.value }}/" >> $GITHUB_OUTPUT
+          fi
