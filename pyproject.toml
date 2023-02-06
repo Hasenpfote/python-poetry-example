@@ -14,7 +14,7 @@ optional = true
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.10.0"
-isort = "^5.10.1"
+isort = "^5.11.5"
 Flake8-pyproject = "^1.2.2"
 mypy = "^0.991"
 pre-commit = "^2.20.0"
