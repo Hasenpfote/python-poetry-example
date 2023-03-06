@@ -16,7 +16,7 @@ optional = true
 black = "^22.10.0"
 isort = "^5.11.5"
 Flake8-pyproject = "^1.2.2"
-mypy = "^0.991"
+mypy = "^1.0"
 pre-commit = "^2.20.0"
 tox = "^3.27.1"
 
