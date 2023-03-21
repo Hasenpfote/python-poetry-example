@@ -550,14 +550,14 @@ files = [
 
 [[package]]
 name = "pdoc"
-version = "12.3.1"
+version = "13.0.0"
 description = "API Documentation for Python Projects"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pdoc-12.3.1-py3-none-any.whl", hash = "sha256:c3f24f31286e634de9c76fa6e67bd5c0c5e74360b41dc91e6b82499831eb52d8"},
-    {file = "pdoc-12.3.1.tar.gz", hash = "sha256:453236f225feddb8a9071428f1982a78d74b9b3da4bc4433aedb64dbd0cc87ab"},
+    {file = "pdoc-13.0.0-py3-none-any.whl", hash = "sha256:f9088b1c10f3296f46a08796e05e307470af5f4253f71d536781f6c305baf912"},
+    {file = "pdoc-13.0.0.tar.gz", hash = "sha256:aadbf6c757c6e65c4754d6c26c4eb6c1bf8c7a9fb893f1fbe5a7b879dde59e46"},
 ]
 
 [package.dependencies]
@@ -567,7 +567,7 @@ MarkupSafe = "*"
 pygments = ">=2.12.0"
 
 [package.extras]
-dev = ["black", "hypothesis", "mypy", "pytest", "pytest-cov", "pytest-timeout", "ruff", "tox", "types-pygments"]
+dev = ["black", "hypothesis", "mypy", "pygments (>=2.14.0)", "pytest", "pytest-cov", "pytest-timeout", "ruff", "tox", "types-pygments"]
 
 [[package]]
 name = "platformdirs"
@@ -953,4 +953,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "e493c3577f8ddb2c2e8714d26d8d0d1630904beabfddabf812203c9372951bf6"
+content-hash = "46cd5360d243c99b29a87f052064a4a02d01bb851d79d31af099e710bb9f4ea4"
