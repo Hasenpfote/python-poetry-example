@@ -44,6 +44,6 @@ jobs:
 
       - name: Lint all markdown files
         if: needs.determine-changes.outputs.md-lint == 'true'
-        uses: DavidAnson/markdownlint-cli2-action@v9
+        uses: DavidAnson/markdownlint-cli2-action@v10
         with:
           globs: '**/*.md'
